@@ -496,6 +496,15 @@ body {
   text-align: center;
 }
 
+/* Add more padding on mobile devices */
+@media (max-width: 768px) {
+  .goal-button {
+    margin-left: 12px;
+    margin-right: 12px;
+    width: calc(100% - 24px);
+  }
+}
+
 .goal-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
@@ -573,6 +582,12 @@ body {
   display: block;
   width: 100%;
   padding: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .goals-grid {
+    padding: 0;
+  }
 }
 
 /* Header styles */

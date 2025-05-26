@@ -90,6 +90,12 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onLongPress }) =
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
       setPressing(false);
+      
+      // If this was a short tap (not a long press), trigger the click handler
+      if (!isDoubleClick) {
+        onClick();
+      }
+      
       e.preventDefault(); // Prevent default to avoid double-tap zoom on mobile
     }
   };
