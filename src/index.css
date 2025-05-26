@@ -679,28 +679,25 @@ body {
 /* Controls */
 .controls {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
-  .controls {
-    flex-direction: row;
-  }
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .checkbox-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .checkbox-label {
   font-size: 0.8rem;
   color: #4B5563;
+  margin-right: 0.5rem;
 }
 
 .new-goal-button {

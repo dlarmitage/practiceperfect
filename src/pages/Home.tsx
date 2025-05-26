@@ -216,7 +216,7 @@ const Home: React.FC = () => {
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="show-inactive" className="checkbox-label">
-              Show Inactive Goals
+              Inactive Goals
             </label>
           </div>
           
