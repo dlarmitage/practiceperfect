@@ -867,12 +867,24 @@ input[type="date"] {
   color: white;
 }
 
+button.cancel-button,
 .cancel-button {
-  background-color: #6B7280;
-  color: white;
+  background-color: #3b82f6 !important;
+  color: white !important;
 }
 
+button.cancel-button:hover,
+.cancel-button:hover {
+  background-color: #2563eb !important;
+}
+
+button.submit-button,
 .submit-button {
-  background-color: #2563EB;
-  color: white;
+  background-color: #3b82f6 !important;
+  color: white !important;
+}
+
+button.submit-button:hover,
+.submit-button:hover {
+  background-color: #2563eb !important;
 }

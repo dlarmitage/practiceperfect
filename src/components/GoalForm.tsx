@@ -209,7 +209,7 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
             <button
               type="button"
               onClick={onDelete}
-              className="form-button delete-button"
+              className="primary-button"
             >
               Delete
             </button>
@@ -219,14 +219,14 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
             <button
               type="button"
               onClick={onCancel}
-              className="form-button cancel-button"
+              className="primary-button"
             >
               Cancel
             </button>
             
             <button
               type="submit"
-              className="form-button submit-button"
+              className="primary-button"
             >
               {goal ? 'Update' : 'Create'}
             </button>

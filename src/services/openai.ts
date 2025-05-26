@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { Goal } from '../types';
+import { calculateGoalStatus } from '../utils/goalUtils';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -21,8 +22,22 @@ export const generateWelcomeMessage = async (goals: Goal[], firstName?: string):
       : "Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.";
   }
 
+  // Calculate status for each active goal
+  
   // Count goals by status
   const activeGoals = goals.filter(goal => goal.isActive);
+  
+  // Calculate status for each goal
+  const goalStatuses = activeGoals.map(goal => ({
+    goal,
+    status: calculateGoalStatus(goal)
+  }));
+  
+  // Find goals that are out of cadence
+  const outOfCadenceGoals = goalStatuses
+    .filter(item => item.status === 'out-of-cadence')
+    .map(item => item.goal);
+    
   const completedGoals = goals.filter(goal => !goal.isActive && goal.dueDate && new Date(goal.dueDate) < new Date());
   
   // Find goals that are due soon (within the next 3 days)
@@ -44,8 +59,12 @@ export const generateWelcomeMessage = async (goals: Goal[], firstName?: string):
     - Active goals: ${activeGoals.length}
     - Completed goals: ${completedGoals.length}
     - Goals due soon: ${dueSoonGoals.length}
+    - Goals out of cadence: ${outOfCadenceGoals.length}
     
     ${dueSoonGoals.length > 0 ? `Goals due soon: ${dueSoonGoals.map(g => g.name).join(', ')}` : ''}
+    ${outOfCadenceGoals.length > 0 ? `Goals that need attention: ${outOfCadenceGoals.map(g => g.name).join(', ')}` : ''}
+    
+    ${outOfCadenceGoals.length > 0 ? 'Please emphasize the importance of keeping up with practice frequency for the goals that need attention.' : ''}
     
     The message should be positive, encouraging, and motivate the user to continue practicing.
     Keep it concise (max 2-3 sentences) and personalized based on their progress.
