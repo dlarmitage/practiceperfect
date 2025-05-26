@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import type { User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { updateProfile, updateEmail, updatePassword, deleteAccount, signOut } from '../services/supabase';
 import ConfirmationModal from './ConfirmationModal';
