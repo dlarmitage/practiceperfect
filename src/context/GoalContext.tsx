@@ -4,6 +4,7 @@ import {
   getGoals, 
   createGoal as createGoalService, 
   updateGoal as updateGoalService,
+  updateGoalSortOrder as updateGoalSortOrderService,
   incrementGoalCount as incrementGoalService,
   deleteGoal as deleteGoalService
 } from '../services/supabase';
@@ -180,9 +181,11 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
   // Function to update goal order
   const updateGoalOrder = async (goalId: string, newOrder: number): Promise<void> => {
     try {
-      // Need to use a type assertion here since sortOrder is a new property
-      const updates = { sortOrder: newOrder } as unknown as Partial<Omit<Goal, 'id' | 'createdAt' | 'user_id'>>;
-      await updateGoalService(goalId, updates);
+      console.log('GoalContext: updateGoalOrder called with:', { goalId, newOrder });
+      
+      // Use the special updateGoalSortOrder function that preserves timestamps
+      await updateGoalSortOrderService(goalId, newOrder);
+      
       // Refresh goals after updating order
       fetchGoals();
     } catch (err) {

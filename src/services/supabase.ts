@@ -309,6 +309,83 @@ export const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedA
   return data as Goal;
 };
 
+// Special function just for updating goal sort order without changing the updated_at timestamp
+export const updateGoalSortOrder = async (id: string, newSortOrder: number): Promise<Goal> => {
+  // Get the current user to get their ID
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) {
+    throw new Error('User not authenticated');
+  }
+  
+  console.log('Using special updateGoalSortOrder function with direct update');
+  
+  // First get the current goal to preserve its data
+  const { data: currentGoal, error: fetchError } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userData.user.id)
+    .single();
+    
+  if (fetchError) {
+    console.error('Error fetching goal:', fetchError);
+    throw fetchError;
+  }
+  
+  console.log('Current goal before sort update:', currentGoal);
+  
+  // Now update only the sort_order field, keeping the original updated_at
+  const { error } = await supabase
+    .from('goals')
+    .update({
+      sort_order: newSortOrder,
+      // Explicitly set updated_at to its current value to prevent auto-update
+      updated_at: currentGoal.updated_at
+    })
+    .eq('id', id)
+    .eq('user_id', userData.user.id);
+  
+  if (error) {
+    console.error('Error updating goal sort order:', error);
+    throw error;
+  }
+  
+  // Fetch the updated goal
+  const { data: updatedGoal, error: getError } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userData.user.id)
+    .single();
+    
+  if (getError) {
+    console.error('Error fetching updated goal:', getError);
+    throw getError;
+  }
+  
+  // Map database snake_case to TypeScript camelCase
+  const result: Goal = {
+    id: updatedGoal.id,
+    user_id: updatedGoal.user_id,
+    name: updatedGoal.name,
+    description: updatedGoal.description,
+    count: updatedGoal.count,
+    targetCount: updatedGoal.target_count,
+    cadence: updatedGoal.cadence,
+    isActive: updatedGoal.is_active,
+    startDate: updatedGoal.start_date,
+    dueDate: updatedGoal.due_date,
+    link: updatedGoal.link,
+    createdAt: updatedGoal.created_at,
+    updatedAt: updatedGoal.updated_at,
+  };
+  
+  // Add the sort order as any to avoid TypeScript errors
+  (result as any).sortOrder = updatedGoal.sort_order || 0;
+  
+  return result;
+};
+
 export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 'createdAt' | 'user_id'>>): Promise<Goal> => {
   // Get the current user to get their ID
   const { data: userData } = await supabase.auth.getUser();
@@ -316,40 +393,74 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     throw new Error('User not authenticated');
   }
   
+  // First convert any camelCase properties to snake_case for consistency in checking
+  const normalizedUpdates: Record<string, any> = {};
+  
+  // Copy all properties, converting camelCase to snake_case
+  if ('targetCount' in updates) normalizedUpdates.target_count = updates.targetCount;
+  else if ('target_count' in updates) normalizedUpdates.target_count = updates.target_count;
+  
+  if ('isActive' in updates) normalizedUpdates.is_active = updates.isActive;
+  else if ('is_active' in updates) normalizedUpdates.is_active = updates.is_active;
+  
+  if ('startDate' in updates) normalizedUpdates.start_date = updates.startDate;
+  else if ('start_date' in updates) normalizedUpdates.start_date = updates.start_date;
+  
+  if ('dueDate' in updates) normalizedUpdates.due_date = updates.dueDate;
+  else if ('due_date' in updates) normalizedUpdates.due_date = updates.due_date;
+  
+  if ('sortOrder' in updates) normalizedUpdates.sort_order = updates.sortOrder;
+  else if ('sort_order' in updates) normalizedUpdates.sort_order = updates.sort_order;
+  
+  // Copy any other properties directly
+  for (const key in updates) {
+    if (!['targetCount', 'isActive', 'startDate', 'dueDate', 'sortOrder'].includes(key) && 
+        !['target_count', 'is_active', 'start_date', 'due_date', 'sort_order'].includes(key)) {
+      normalizedUpdates[key] = (updates as any)[key];
+    }
+  }
+  
   // Check if this is only a sort order update (for drag and drop)
-  const isSortOrderUpdateOnly = Object.keys(updates).length === 1 && 'sortOrder' in updates;
+  const isSortOrderUpdateOnly = 
+    Object.keys(normalizedUpdates).length === 1 && 
+    ('sort_order' in normalizedUpdates);
   
-  // Map camelCase updates to snake_case for the database
-  const dbUpdates: Record<string, any> = {
-    ...updates,
-  };
+  console.log('Update goal called with:', { id, updates });
+  console.log('Normalized updates:', normalizedUpdates);
+  console.log('Is sort order update only:', isSortOrderUpdateOnly);
   
-  // Only update the timestamp if we're not just changing the sort order
-  if (!isSortOrderUpdateOnly) {
+  // Map normalized updates to database format
+  const dbUpdates = { ...normalizedUpdates };
+  
+  // For sort order updates, we need to explicitly preserve the original timestamp
+  if (isSortOrderUpdateOnly) {
+    // For sort order updates, we'll explicitly keep the original timestamp
+    console.log('Preserving timestamp for sortOrder-only update');
+    
+    // We'll remove any updated_at that might have been included
+    if ('updated_at' in dbUpdates) {
+      delete dbUpdates.updated_at;
+    }
+  } else {
+    // For all other updates, set the timestamp to now
     dbUpdates.updated_at = new Date().toISOString();
+    console.log('Updating timestamp because not just sortOrder');
   }
   
-  // Handle any field name mappings
-  if ('targetCount' in updates) {
-    dbUpdates.target_count = updates.targetCount;
-    delete dbUpdates.targetCount;
-  }
-  if ('isActive' in updates) {
-    dbUpdates.is_active = updates.isActive;
-    delete dbUpdates.isActive;
-  }
-  if ('startDate' in updates) {
-    dbUpdates.start_date = updates.startDate;
-    delete dbUpdates.startDate;
-  }
-  if ('dueDate' in updates) {
-    dbUpdates.due_date = updates.dueDate;
-    delete dbUpdates.dueDate;
-  }
-  if ('sortOrder' in updates) {
-    dbUpdates.sort_order = updates.sortOrder;
-    delete dbUpdates.sortOrder;
-  }
+  // Field name mappings are already handled in the normalization step above
+  
+  // Log the final updates being sent to the database
+  console.log('Final updates being sent to database:', dbUpdates);
+  
+  // Get the current goal to compare before/after
+  const { data: currentGoal } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userData.user.id)
+    .single();
+    
+  console.log('Current goal before update:', currentGoal);
   
   const { data, error } = await supabase
     .from('goals')
@@ -358,6 +469,8 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     .eq('user_id', userData.user.id) // Ensure the goal belongs to the current user
     .select()
     .single();
+    
+  console.log('Goal after update:', data);
   
   if (error) {
     console.error('Supabase error:', error);

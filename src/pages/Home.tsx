@@ -192,6 +192,10 @@ const Home: React.FC = () => {
   const isDragging = useRef(false);
   // Track when the last drag ended to prevent clicks immediately after
   const lastDragEndTime = useRef(0);
+  // Track touch position for mobile drag and drop
+  const touchStartY = useRef(0);
+  const touchStartX = useRef(0);
+  const touchedGoal = useRef<Goal | null>(null);
   
   // Handle drag start for custom sorting
   const handleDragStart = (goal: Goal) => {
@@ -200,6 +204,92 @@ const Home: React.FC = () => {
     setDraggedGoal(goal);
     // Set a timestamp when drag starts
     lastDragEndTime.current = Date.now();
+  };
+  
+  // Handle touch start for mobile drag and drop
+  const handleTouchStart = (e: React.TouchEvent, goal: Goal) => {
+    if (sortMethod !== 'custom') return;
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+    touchedGoal.current = goal;
+  };
+  
+  // Handle touch move for mobile drag and drop
+  const handleTouchMove = (e: React.TouchEvent, goal: Goal) => {
+    if (sortMethod !== 'custom' || !touchedGoal.current) return;
+    
+    // Prevent scrolling when dragging
+    e.preventDefault();
+    
+    const touchY = e.touches[0].clientY;
+    const touchX = e.touches[0].clientX;
+    
+    // If we've moved enough to consider it a drag
+    const moveThreshold = 10; // pixels
+    if (Math.abs(touchY - touchStartY.current) > moveThreshold || 
+        Math.abs(touchX - touchStartX.current) > moveThreshold) {
+      isDragging.current = true;
+      setDraggedGoal(touchedGoal.current);
+      setDragOverGoal(goal);
+    }
+  };
+  
+  // Handle touch end for mobile drag and drop
+  const handleTouchEnd = async (e: React.TouchEvent, targetGoal: Goal) => {
+    if (sortMethod !== 'custom' || !touchedGoal.current) return;
+    
+    // If we were dragging and have a target
+    if (isDragging.current && draggedGoal && dragOverGoal) {
+      e.preventDefault();
+      
+      // Prevent multiple reordering operations at once
+      if (isReordering.current) return;
+      isReordering.current = true;
+      
+      try {
+        setIsLoading(true);
+        
+        // Find the indices of the dragged and target goals
+        const draggedIndex = filteredGoals.findIndex(g => g.id === draggedGoal.id);
+        const targetIndex = filteredGoals.findIndex(g => g.id === targetGoal.id);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return;
+        
+        // Calculate new sort orders for the dragged goal
+        let newSortOrder: number;
+        
+        if (targetIndex === 0) {
+          // If dropping at the beginning, use a value smaller than the first item
+          newSortOrder = ((targetGoal as any).sortOrder || 0) - 10;
+        } else if (targetIndex === filteredGoals.length - 1) {
+          // If dropping at the end, use a value larger than the last item
+          newSortOrder = ((targetGoal as any).sortOrder || 0) + 10;
+        } else {
+          // If dropping in the middle, use the average of the target and the next item
+          const nextGoal = filteredGoals[targetIndex + (draggedIndex < targetIndex ? 1 : -1)];
+          newSortOrder = (((targetGoal as any).sortOrder || 0) + ((nextGoal as any).sortOrder || 0)) / 2;
+        }
+        
+        // Update the sort order in the database - directly use updateGoalOrder to preserve timestamp
+        await updateGoalOrder(draggedGoal.id, newSortOrder);
+      } catch (error) {
+        console.error('Error reordering goals:', error);
+      } finally {
+        setDraggedGoal(null);
+        setDragOverGoal(null);
+        setIsLoading(false);
+        isReordering.current = false;
+      }
+    }
+    
+    // Reset touch tracking
+    touchedGoal.current = null;
+    lastDragEndTime.current = Date.now();
+    
+    // Set a timeout before allowing clicks again
+    setTimeout(() => {
+      isDragging.current = false;
+    }, 300);
   };
   
   // Handle drag over for custom sorting
@@ -356,6 +446,9 @@ const Home: React.FC = () => {
                 onDragOver={(e) => handleDragOver(e, goal)}
                 onDrop={(e) => handleDrop(e, goal)}
                 onDragEnd={handleDragEnd}
+                onTouchStart={(e) => handleTouchStart(e, goal)}
+                onTouchMove={(e) => handleTouchMove(e, goal)}
+                onTouchEnd={(e) => handleTouchEnd(e, goal)}
               >
                 {sortMethod === 'custom' && (
                   <div className="drag-handle">
