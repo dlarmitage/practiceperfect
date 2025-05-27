@@ -297,7 +297,7 @@ const Home: React.FC = () => {
         
         {/* Controls */}
         <div className="controls">
-          <div className="controls-items">
+          <div className="controls-left">
             <div className="checkbox-group">
               <input
                 type="checkbox"
@@ -310,7 +310,9 @@ const Home: React.FC = () => {
                 Show Inactive
               </label>
             </div>
-            
+          </div>
+          
+          <div className="controls-right">
             <div className="sort-dropdown">
               <select
                 value={sortMethod}
