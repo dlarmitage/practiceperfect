@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Goal } from '../types';
+import type { SortMethod } from '../context/GoalContext';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -173,18 +174,28 @@ export const resetPassword = async (email: string) => {
 };
 
 // Goals CRUD operations
-export const getGoals = async (): Promise<Goal[]> => {
+export const getGoals = async (sortMethod: SortMethod = 'newest'): Promise<Goal[]> => {
   // Get the current user to get their ID
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) {
     throw new Error('User not authenticated');
   }
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('goals')
     .select('*')
-    .eq('user_id', userData.user.id) // Filter by the current user's ID
-    .order('created_at', { ascending: false });
+    .eq('user_id', userData.user.id); // Filter by the current user's ID
+    
+  // Apply sorting based on the sort method
+  if (sortMethod === 'newest') {
+    query = query.order('created_at', { ascending: false });
+  } else if (sortMethod === 'oldest') {
+    query = query.order('created_at', { ascending: true });
+  } else if (sortMethod === 'custom') {
+    query = query.order('sort_order', { ascending: true });
+  }
+  
+  const { data, error } = await query;
   
   if (error) {
     console.error('Supabase error:', error);
@@ -206,6 +217,7 @@ export const getGoals = async (): Promise<Goal[]> => {
     link: goal.link,
     createdAt: goal.created_at,
     updatedAt: goal.updated_at,
+    sortOrder: goal.sort_order || 0,
   }));
 };
 
@@ -254,6 +266,17 @@ export const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedA
   }
   
   const now = new Date().toISOString();
+  
+  // Get the maximum sort_order to place new goal at the end
+  const { data: maxOrderData } = await supabase
+    .from('goals')
+    .select('sort_order')
+    .eq('user_id', userData.user.id)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+    
+  const maxOrder = maxOrderData && maxOrderData.length > 0 ? (maxOrderData[0].sort_order || 0) : 0;
+  
   const newGoal = {
     name: goal.name,
     description: goal.description,
@@ -267,6 +290,7 @@ export const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedA
     user_id: userData.user.id,
     created_at: now,
     updated_at: now,
+    sort_order: maxOrder + 1,
   };
   
   console.log('Creating goal with data:', newGoal);
@@ -292,11 +316,18 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     throw new Error('User not authenticated');
   }
   
+  // Check if this is only a sort order update (for drag and drop)
+  const isSortOrderUpdateOnly = Object.keys(updates).length === 1 && 'sortOrder' in updates;
+  
   // Map camelCase updates to snake_case for the database
   const dbUpdates: Record<string, any> = {
     ...updates,
-    updated_at: new Date().toISOString(),
   };
+  
+  // Only update the timestamp if we're not just changing the sort order
+  if (!isSortOrderUpdateOnly) {
+    dbUpdates.updated_at = new Date().toISOString();
+  }
   
   // Handle any field name mappings
   if ('targetCount' in updates) {
@@ -314,6 +345,10 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   if ('dueDate' in updates) {
     dbUpdates.due_date = updates.dueDate;
     delete dbUpdates.dueDate;
+  }
+  if ('sortOrder' in updates) {
+    dbUpdates.sort_order = updates.sortOrder;
+    delete dbUpdates.sortOrder;
   }
   
   const { data, error } = await supabase

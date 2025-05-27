@@ -10,6 +10,8 @@ import {
 import { useAuth } from './AuthContext';
 import type { Goal } from '../types';
 
+export type SortMethod = 'newest' | 'oldest' | 'custom';
+
 // Define the GoalContextType interface
 interface GoalContextType {
   goals: Goal[];
@@ -21,6 +23,9 @@ interface GoalContextType {
   deleteGoal: (id: string) => Promise<boolean>;
   showInactive: boolean;
   setShowInactive: (show: boolean) => void;
+  sortMethod: SortMethod;
+  setSortMethod: (method: SortMethod) => void;
+  updateGoalOrder: (goalId: string, newOrder: number) => Promise<void>;
 }
 
 const GoalContext = createContext<GoalContextType>({
@@ -40,7 +45,12 @@ const GoalContext = createContext<GoalContextType>({
     throw new Error('Not implemented');
   },
   showInactive: false,
-  setShowInactive: () => {}
+  setShowInactive: () => {},
+  sortMethod: 'newest',
+  setSortMethod: () => {},
+  updateGoalOrder: async () => {
+    throw new Error('Not implemented');
+  }
 });
 
 export const useGoals = () => useContext(GoalContext);
@@ -54,6 +64,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [showInactive, setShowInactive] = useState<boolean>(false);
+  const [sortMethod, setSortMethod] = useState<SortMethod>('newest');
   const { user } = useAuth();
 
   const fetchGoals = async () => {
@@ -65,7 +76,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
 
     try {
       setLoading(true);
-      const goalsData = await getGoals();
+      const goalsData = await getGoals(sortMethod);
       setGoals(goalsData);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch goals'));
@@ -76,7 +87,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
 
   useEffect(() => {
     fetchGoals();
-  }, [user]);
+  }, [user, sortMethod]);
 
   const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>): Promise<Goal> => {
     try {
@@ -166,6 +177,22 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to update goal order
+  const updateGoalOrder = async (goalId: string, newOrder: number): Promise<void> => {
+    try {
+      // Need to use a type assertion here since sortOrder is a new property
+      const updates = { sortOrder: newOrder } as unknown as Partial<Omit<Goal, 'id' | 'createdAt' | 'user_id'>>;
+      await updateGoalService(goalId, updates);
+      // Refresh goals after updating order
+      fetchGoals();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to update goal order');
+      console.error('Error updating goal order:', err);
+      setError(error);
+      throw error;
+    }
+  };
+
   return (
     <GoalContext.Provider 
       value={{ 
@@ -177,7 +204,10 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
         incrementGoalCount, 
         deleteGoal,
         showInactive,
-        setShowInactive
+        setShowInactive,
+        sortMethod,
+        setSortMethod,
+        updateGoalOrder
       }}
     >
       {children}

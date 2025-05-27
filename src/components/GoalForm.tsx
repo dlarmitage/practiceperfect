@@ -42,6 +42,19 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
       setTargetCount(1);
     }
   }, [goal]);
+  
+  // Update isActive when start date changes
+  useEffect(() => {
+    // Check if start date is in the future
+    const selectedStartDate = new Date(startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for proper comparison
+    
+    // If start date is in the future, automatically set to inactive
+    if (selectedStartDate > today) {
+      setIsActive(false);
+    }
+  }, [startDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +112,7 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
         <div className="form-row">
           <div className="form-group compact half">
             <label htmlFor="cadence" className="form-label">
-              Frequency *
+              Cadence *
             </label>
             <select
               id="cadence"
@@ -194,9 +207,13 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
               id="isActive"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
+              disabled={new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0))}
             />
             <label htmlFor="isActive" className="checkbox-label">
               Active
+              {new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0)) && (
+                <span className="text-xs text-gray-500 ml-1">(auto-inactive until start date)</span>
+              )}
             </label>
           </div>
 

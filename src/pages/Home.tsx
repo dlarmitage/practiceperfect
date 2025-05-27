@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useGoals } from '../context/GoalContext';
+import type { SortMethod } from '../context/GoalContext';
 import GoalButton from '../components/GoalButton';
 import GoalForm from '../components/GoalForm';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -22,7 +23,10 @@ const Home: React.FC = () => {
     incrementGoalCount, 
     deleteGoal,
     showInactive,
-    setShowInactive
+    setShowInactive,
+    sortMethod,
+    setSortMethod,
+    updateGoalOrder
   } = useGoals();
   
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
@@ -30,6 +34,11 @@ const Home: React.FC = () => {
   const [selectedGoal, setSelectedGoal] = useState<Goal | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [draggedGoal, setDraggedGoal] = useState<Goal | null>(null);
+  const [dragOverGoal, setDragOverGoal] = useState<Goal | null>(null);
+  
+  // Ref to track if we're currently reordering goals
+  const isReordering = useRef(false);
   
   const navigate = useNavigate();
 
@@ -77,7 +86,7 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleGoalLongPress = (goal: Goal) => {
+  const handleGoalEdit = (goal: Goal) => {
     setSelectedGoal(goal);
     setIsFormOpen(true);
   };
@@ -178,6 +187,87 @@ const Home: React.FC = () => {
   const filteredGoals = showInactive 
     ? goals 
     : goals.filter(goal => goal.isActive);
+    
+  // Track if we're currently dragging to prevent click events
+  const isDragging = useRef(false);
+  // Track when the last drag ended to prevent clicks immediately after
+  const lastDragEndTime = useRef(0);
+  
+  // Handle drag start for custom sorting
+  const handleDragStart = (goal: Goal) => {
+    if (sortMethod !== 'custom') return;
+    isDragging.current = true;
+    setDraggedGoal(goal);
+    // Set a timestamp when drag starts
+    lastDragEndTime.current = Date.now();
+  };
+  
+  // Handle drag over for custom sorting
+  const handleDragOver = (e: React.DragEvent, goal: Goal) => {
+    e.preventDefault();
+    if (sortMethod !== 'custom' || !draggedGoal || draggedGoal.id === goal.id) return;
+    setDragOverGoal(goal);
+  };
+  
+  // Handle drop for custom sorting
+  const handleDrop = async (e: React.DragEvent, targetGoal: Goal) => {
+    e.preventDefault();
+    if (sortMethod !== 'custom' || !draggedGoal || draggedGoal.id === targetGoal.id) return;
+    
+    // Prevent multiple reordering operations at once
+    if (isReordering.current) return;
+    isReordering.current = true;
+    
+    try {
+      setIsLoading(true);
+      
+      // Find the indices of the dragged and target goals
+      const draggedIndex = filteredGoals.findIndex(g => g.id === draggedGoal.id);
+      const targetIndex = filteredGoals.findIndex(g => g.id === targetGoal.id);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+      
+      // Calculate new sort orders for the dragged goal
+      let newSortOrder: number;
+      
+      if (targetIndex === 0) {
+        // If dropping at the beginning, use a value smaller than the first item
+        newSortOrder = ((targetGoal as any).sortOrder || 0) - 10;
+      } else if (targetIndex === filteredGoals.length - 1) {
+        // If dropping at the end, use a value larger than the last item
+        newSortOrder = ((targetGoal as any).sortOrder || 0) + 10;
+      } else {
+        // If dropping in the middle, use the average of the target and the next item
+        const nextGoal = filteredGoals[targetIndex + (draggedIndex < targetIndex ? 1 : -1)];
+        newSortOrder = (((targetGoal as any).sortOrder || 0) + ((nextGoal as any).sortOrder || 0)) / 2;
+      }
+      
+      // Update the sort order in the database
+      await updateGoalOrder(draggedGoal.id, newSortOrder);
+    } catch (error) {
+      console.error('Error reordering goals:', error);
+    } finally {
+      setDraggedGoal(null);
+      setDragOverGoal(null);
+      setIsLoading(false);
+      isReordering.current = false;
+    }
+  };
+  
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedGoal(null);
+    setDragOverGoal(null);
+    
+    // Record when the drag ended
+    lastDragEndTime.current = Date.now();
+    
+    // Set a timeout before allowing clicks again
+    // This prevents the click event from firing immediately after drag ends
+    setTimeout(() => {
+      isDragging.current = false;
+    }, 300); // Increased timeout to ensure no accidental clicks
+  };
 
   if (authLoading || goalsLoading || isLoading) {
     return (
@@ -207,26 +297,43 @@ const Home: React.FC = () => {
         
         {/* Controls */}
         <div className="controls">
-          <div className="checkbox-group">
-            <input
-              type="checkbox"
-              id="show-inactive"
-              checked={showInactive}
-              onChange={(e) => setShowInactive(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="show-inactive" className="checkbox-label">
-              Inactive Goals
-            </label>
+          <div className="controls-left">
+            <div className="checkbox-group">
+              <input
+                type="checkbox"
+                id="show-inactive"
+                checked={showInactive}
+                onChange={(e) => setShowInactive(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="show-inactive" className="checkbox-label">
+                Inactive Goals
+              </label>
+            </div>
           </div>
           
-          <button
-            onClick={handleCreateGoal}
-            className="primary-button"
-            aria-label="Add new goal"
-          >
-            + New Goal
-          </button>
+          <div className="controls-right">
+            <div className="sort-dropdown">
+              <select
+                value={sortMethod}
+                onChange={(e) => setSortMethod(e.target.value as SortMethod)}
+                className="sort-select"
+                aria-label="Sort goals by"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            
+            <button
+              onClick={handleCreateGoal}
+              className="primary-button"
+              aria-label="Add new goal"
+            >
+              + New Goal
+            </button>
+          </div>
         </div>
         
         {/* Goals grid */}
@@ -241,12 +348,44 @@ const Home: React.FC = () => {
         ) : (
           <div className="goals-grid">
             {filteredGoals.map((goal) => (
-              <GoalButton
+              <div 
                 key={goal.id}
-                goal={goal}
-                onClick={() => handleGoalClick(goal.id)}
-                onLongPress={() => handleGoalLongPress(goal)}
-              />
+                className={`goal-container ${dragOverGoal?.id === goal.id ? 'drag-over' : ''} ${sortMethod === 'custom' ? 'draggable' : ''}`}
+                draggable={sortMethod === 'custom'}
+                onDragStart={() => handleDragStart(goal)}
+                onDragOver={(e) => handleDragOver(e, goal)}
+                onDrop={(e) => handleDrop(e, goal)}
+                onDragEnd={handleDragEnd}
+              >
+                {sortMethod === 'custom' && (
+                  <div className="drag-handle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="4" y1="6" x2="20" y2="6"></line>
+                      <line x1="4" y1="12" x2="20" y2="12"></line>
+                      <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                  </div>
+                )}
+                <div 
+                  onClick={(e) => {
+                    // Prevent click events during or immediately after dragging
+                    if (sortMethod === 'custom' && (
+                      isDragging.current || 
+                      (Date.now() - lastDragEndTime.current < 500)
+                    )) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                  }}
+                >
+                  <GoalButton
+                    goal={goal}
+                    onClick={() => handleGoalClick(goal.id)}
+                    onEdit={() => handleGoalEdit(goal)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         )}

@@ -14,6 +14,7 @@ export interface Goal {
   isActive: boolean;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
+  sortOrder?: number; // Position for custom sorting
 }
 
 export interface User {

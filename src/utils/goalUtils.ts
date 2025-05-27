@@ -7,15 +7,16 @@ import type { Goal, GoalStatus, Cadence } from '../types';
  * @returns The current status of the goal
  */
 export const calculateGoalStatus = (goal: Goal): GoalStatus => {
-  if (!goal.isActive) {
-    return 'not-started';
-  }
-
   const now = new Date();
   const startDate = new Date(goal.startDate);
   
-  // If the goal hasn't started yet
+  // If the goal hasn't started yet (future start date)
   if (startDate > now) {
+    return 'not-started';
+  }
+  
+  // If the goal is manually set to inactive
+  if (!goal.isActive) {
     return 'not-started';
   }
   

@@ -1,28 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile, updateEmail, updatePassword, deleteAccount, signOut } from '../services/supabase';
+import { updateProfile, updateEmail, deleteAccount } from '../services/supabase';
 import ConfirmationModal from './ConfirmationModal';
+import PasswordChangeModal from './PasswordChangeModal';
 
 interface ProfileModalProps {
   onClose: () => void;
 }
 
-type FormTab = 'profile' | 'email' | 'password' | 'danger';
-
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   
-  const [activeTab, setActiveTab] = useState<FormTab>('profile');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [deleteConfirmPassword, setDeleteConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   
@@ -33,21 +31,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     }
   }, [user]);
   
-  const handleTabChange = (tab: FormTab) => {
-    setActiveTab(tab);
-    setError('');
-    setSuccess('');
-  };
-  
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess('');
     
     try {
+      // Update profile information
       await updateProfile({ firstName });
-      setSuccess('Profile updated successfully!');
+      
+      // Update email if password is provided
+      if (currentPassword) {
+        await updateEmail({ email, password: currentPassword });
+        setCurrentPassword('');
+      }
+      
       // Update the user in context
       if (user) {
         setUser({
@@ -58,59 +57,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           }
         });
       }
+      
+      setSuccess('Profile updated successfully!');
     } catch (err) {
-      setError('Failed to update profile');
+      setError('Failed to update profile. If you tried to change your email, please check your password.');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleUpdateEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-    
-    try {
-      await updateEmail({ email, password: currentPassword });
-      setSuccess('Email update initiated. Please check your new email for confirmation.');
-    } catch (err) {
-      setError('Failed to update email. Please check your password and try again.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePasswordModalOpen = () => {
+    setShowPasswordModal(true);
   };
   
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-    
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      await updatePassword({ currentPassword, newPassword });
-      setSuccess('Password updated successfully!');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err) {
-      setError('Failed to update password. Please check your current password and try again.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePasswordModalClose = () => {
+    setShowPasswordModal(false);
   };
   
-  const handleDeleteAccountRequest = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDeleteAccountRequest = () => {
+    setDeleteConfirmPassword('');
     setShowDeleteConfirmation(true);
   };
   
@@ -120,8 +86,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     
     try {
       await deleteAccount({ password: deleteConfirmPassword });
-      // Sign out and redirect to login page
-      await signOut();
       onClose();
       navigate('/login');
     } catch (err) {
@@ -130,16 +94,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       setShowDeleteConfirmation(false);
     } finally {
       setIsLoading(false);
-    }
-  };
-  
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      onClose();
-      navigate('/login');
-    } catch (err) {
-      console.error('Error signing out:', err);
     }
   };
   
@@ -157,39 +111,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           </button>
         </div>
         
-        <div className="profile-tabs">
-          <button 
-            className={`profile-tab ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => handleTabChange('profile')}
-          >
-            Profile
-          </button>
-          <button 
-            className={`profile-tab ${activeTab === 'email' ? 'active' : ''}`}
-            onClick={() => handleTabChange('email')}
-          >
-            Email
-          </button>
-          <button 
-            className={`profile-tab ${activeTab === 'password' ? 'active' : ''}`}
-            onClick={() => handleTabChange('password')}
-          >
-            Password
-          </button>
-          <button 
-            className={`profile-tab danger-tab ${activeTab === 'danger' ? 'active' : ''}`}
-            onClick={() => handleTabChange('danger')}
-          >
-            Danger Zone
-          </button>
-        </div>
-        
         <div className="profile-content">
           {error && <div className="error-message">{error}</div>}
           {success && <div className="success-message">{success}</div>}
           
-          {activeTab === 'profile' && (
-            <form onSubmit={handleUpdateProfile}>
+          <form onSubmit={handleUpdate}>
+            <div className="form-section">
+              <h3 className="section-subtitle">Personal Information</h3>
               <div className="form-group">
                 <label htmlFor="firstName">First Name</label>
                 <input
@@ -198,24 +126,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
+                  autoFocus
                 />
               </div>
-              <div className="form-actions">
-                <button 
-                  type="submit" 
-                  className="primary-button"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Updating...' : 'Update Profile'}
-                </button>
-              </div>
-            </form>
-          )}
-          
-          {activeTab === 'email' && (
-            <form onSubmit={handleUpdateEmail}>
+            </div>
+            
+            <div className="form-section">
+              <h3 className="section-subtitle">Account Settings</h3>
               <div className="form-group">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email">Email Address</label>
                 <input
                   id="email"
                   type="email"
@@ -224,126 +143,88 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   required
                 />
               </div>
+              
               <div className="form-group">
-                <label htmlFor="currentPassword">Current Password</label>
+                <label htmlFor="currentPassword">
+                  Current Password
+                  <span className="input-hint">(required only if changing email)</span>
+                </label>
                 <input
                   id="currentPassword"
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
+                  placeholder="Enter password to change email"
                 />
               </div>
-              <div className="form-actions">
+            </div>
+            
+
+            
+            <div className="modal-footer">
+              <div className="footer-actions-left">
                 <button 
-                  type="submit" 
-                  className="primary-button"
+                  type="button" 
+                  className="primary-button danger-button"
+                  onClick={handleDeleteAccountRequest}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Updating...' : 'Update Email'}
+                  Delete Account
                 </button>
-              </div>
-            </form>
-          )}
-          
-          {activeTab === 'password' && (
-            <form onSubmit={handleUpdatePassword}>
-              <div className="form-group">
-                <label htmlFor="currentPasswordForUpdate">Current Password</label>
-                <input
-                  id="currentPasswordForUpdate"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="newPassword">New Password</label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm New Password</label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="form-actions">
+                
                 <button 
-                  type="submit" 
-                  className="primary-button"
+                  type="button" 
+                  className="secondary-button"
+                  onClick={handlePasswordModalOpen}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Updating...' : 'Update Password'}
-                </button>
-              </div>
-            </form>
-          )}
-          
-          {activeTab === 'danger' && (
-            <div className="danger-zone">
-              <div className="danger-section">
-                <h3>Sign Out</h3>
-                <p>Sign out from this device.</p>
-                <button 
-                  className="danger-button"
-                  onClick={handleSignOut}
-                  disabled={isLoading}
-                >
-                  Sign Out
+                  Change Password
                 </button>
               </div>
               
-              <div className="danger-section">
-                <h3>Delete Account</h3>
-                <p>Permanently delete your account and all your data. This action cannot be undone.</p>
-                <form onSubmit={handleDeleteAccountRequest}>
-                  <div className="form-group">
-                    <label htmlFor="deleteConfirmPassword">Enter your password to confirm</label>
-                    <input
-                      id="deleteConfirmPassword"
-                      type="password"
-                      value={deleteConfirmPassword}
-                      onChange={(e) => setDeleteConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    className="danger-button"
-                    disabled={isLoading}
-                  >
-                    Delete My Account
-                  </button>
-                </form>
-              </div>
+              <button 
+                type="submit" 
+                className="primary-button"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Updating...' : 'Update Profile'}
+              </button>
             </div>
-          )}
+          </form>
         </div>
       </div>
       
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         title="Delete Account"
-        message="Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data."
+        message={
+          <>
+            <p>Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.</p>
+            <div className="form-group">
+              <label htmlFor="deleteConfirmPassword">Enter your password to confirm</label>
+              <input
+                id="deleteConfirmPassword"
+                type="password"
+                value={deleteConfirmPassword}
+                onChange={(e) => setDeleteConfirmPassword(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+          </>
+        }
         confirmText="Delete Account"
         cancelText="Cancel"
         onConfirm={confirmDeleteAccount}
         onCancel={() => setShowDeleteConfirmation(false)}
         isDanger={true}
       />
+      
+      {showPasswordModal && (
+        <PasswordChangeModal 
+          onClose={handlePasswordModalClose} 
+        />
+      )}
     </div>
   );
 };
