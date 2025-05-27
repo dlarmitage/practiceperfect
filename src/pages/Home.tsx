@@ -478,7 +478,6 @@ const Home: React.FC = () => {
                       <line x1="4" y1="12" x2="20" y2="12"></line>
                       <line x1="4" y1="18" x2="20" y2="18"></line>
                     </svg>
-                    <span className="drag-hint">Hold to drag</span>
                   </div>
                 )}
                 <div 
