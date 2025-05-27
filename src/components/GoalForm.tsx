@@ -119,15 +119,29 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
             <label htmlFor="targetCount" className="form-label">
               Target *
             </label>
-            <input
-              type="number"
-              id="targetCount"
-              value={targetCount}
-              onChange={(e) => setTargetCount(parseInt(e.target.value) || 1)}
-              min="1"
-              required
-              className="form-input"
-            />
+            <div className="number-input-container">
+              <button 
+                type="button" 
+                className="number-control-button"
+                onClick={() => setTargetCount(Math.max(1, targetCount - 1))}
+                aria-label="Decrease target count"
+              >−</button>
+              <input
+                type="number"
+                id="targetCount"
+                value={targetCount}
+                onChange={(e) => setTargetCount(parseInt(e.target.value) || 1)}
+                min="1"
+                required
+                className="form-input number-input"
+              />
+              <button 
+                type="button" 
+                className="number-control-button"
+                onClick={() => setTargetCount(targetCount + 1)}
+                aria-label="Increase target count"
+              >+</button>
+            </div>
           </div>
         </div>
         
@@ -191,15 +205,29 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
               <label htmlFor="count" className="count-label">
                 Count:
               </label>
-              <input
-                type="number"
-                id="count"
-                value={count}
-                onChange={(e) => setCount(parseInt(e.target.value) || 0)}
-                min="0"
-                className="count-input"
-                maxLength={3}
-              />
+              <div className="number-input-container">
+                <button 
+                  type="button" 
+                  className="number-control-button"
+                  onClick={() => setCount(Math.max(0, count - 1))}
+                  aria-label="Decrease count"
+                >−</button>
+                <input
+                  type="number"
+                  id="count"
+                  value={count}
+                  onChange={(e) => setCount(parseInt(e.target.value) || 0)}
+                  min="0"
+                  className="count-input number-input"
+                  maxLength={3}
+                />
+                <button 
+                  type="button" 
+                  className="number-control-button"
+                  onClick={() => setCount(count + 1)}
+                  aria-label="Increase count"
+                >+</button>
+              </div>
             </div>
           )}
         </div>
