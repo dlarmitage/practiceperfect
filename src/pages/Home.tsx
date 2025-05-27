@@ -209,17 +209,18 @@ const Home: React.FC = () => {
   // Handle touch start for mobile drag and drop
   const handleTouchStart = (e: React.TouchEvent, goal: Goal) => {
     if (sortMethod !== 'custom') return;
+    
+    // Record the starting position
     touchStartY.current = e.touches[0].clientY;
     touchStartX.current = e.touches[0].clientX;
     touchedGoal.current = goal;
+    
+    // Don't prevent default here to allow normal touch behavior initially
   };
   
   // Handle touch move for mobile drag and drop
   const handleTouchMove = (e: React.TouchEvent, goal: Goal) => {
     if (sortMethod !== 'custom' || !touchedGoal.current) return;
-    
-    // Prevent scrolling when dragging
-    e.preventDefault();
     
     const touchY = e.touches[0].clientY;
     const touchX = e.touches[0].clientX;
@@ -228,9 +229,19 @@ const Home: React.FC = () => {
     const moveThreshold = 10; // pixels
     if (Math.abs(touchY - touchStartY.current) > moveThreshold || 
         Math.abs(touchX - touchStartX.current) > moveThreshold) {
+      // Once we determine it's a drag, prevent default browser behavior
+      // This prevents the page from scrolling or the browser from interpreting
+      // this as a swipe gesture
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Set dragging state
       isDragging.current = true;
       setDraggedGoal(touchedGoal.current);
       setDragOverGoal(goal);
+      
+      // Add a class to the body to prevent scrolling
+      document.body.classList.add('dragging');
     }
   };
   
@@ -238,9 +249,13 @@ const Home: React.FC = () => {
   const handleTouchEnd = async (e: React.TouchEvent, targetGoal: Goal) => {
     if (sortMethod !== 'custom' || !touchedGoal.current) return;
     
+    // Remove the dragging class from the body
+    document.body.classList.remove('dragging');
+    
     // If we were dragging and have a target
     if (isDragging.current && draggedGoal && dragOverGoal) {
       e.preventDefault();
+      e.stopPropagation();
       
       // Prevent multiple reordering operations at once
       if (isReordering.current) return;
@@ -440,23 +455,30 @@ const Home: React.FC = () => {
             {filteredGoals.map((goal) => (
               <div 
                 key={goal.id}
-                className={`goal-container ${dragOverGoal?.id === goal.id ? 'drag-over' : ''} ${sortMethod === 'custom' ? 'draggable' : ''}`}
+                className={`goal-container ${dragOverGoal?.id === goal.id ? 'drag-over' : ''} ${sortMethod === 'custom' ? 'draggable' : ''} ${draggedGoal?.id === goal.id ? 'being-dragged' : ''}`}
                 draggable={sortMethod === 'custom'}
                 onDragStart={() => handleDragStart(goal)}
                 onDragOver={(e) => handleDragOver(e, goal)}
                 onDrop={(e) => handleDrop(e, goal)}
                 onDragEnd={handleDragEnd}
-                onTouchStart={(e) => handleTouchStart(e, goal)}
                 onTouchMove={(e) => handleTouchMove(e, goal)}
                 onTouchEnd={(e) => handleTouchEnd(e, goal)}
               >
                 {sortMethod === 'custom' && (
-                  <div className="drag-handle">
+                  <div 
+                    className="drag-handle"
+                    onTouchStart={(e) => {
+                      // Stop propagation to ensure only the handle initiates the drag
+                      e.stopPropagation();
+                      handleTouchStart(e, goal);
+                    }}
+                  >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="4" y1="6" x2="20" y2="6"></line>
                       <line x1="4" y1="12" x2="20" y2="12"></line>
                       <line x1="4" y1="18" x2="20" y2="18"></line>
                     </svg>
+                    <span className="drag-hint">Hold to drag</span>
                   </div>
                 )}
                 <div 

@@ -680,6 +680,64 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Drag and drop styles */
+.dragging-over {
+  border: 2px dashed #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.being-dragged {
+  opacity: 0.7;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  position: relative;
+}
+
+/* Prevent scrolling when dragging */
+body.dragging {
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  overscroll-behavior: none;
+}
+
+/* Improve drag handle visibility and usability */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: grab;
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px 4px 0 0;
+  margin-bottom: 4px;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-hint {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 8px;
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .drag-hint {
+    display: inline;
+  }
+  
+  .drag-handle {
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+}
+
 /* Container styles */
 .goals-grid {
   display: grid;
