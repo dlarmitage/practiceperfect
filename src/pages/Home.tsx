@@ -6,6 +6,7 @@ import type { SortMethod } from '../context/GoalContext';
 import GoalButton from '../components/GoalButton';
 import GoalForm from '../components/GoalForm';
 import ConfirmationModal from '../components/ConfirmationModal';
+import PositionSelectModal from '../components/PositionSelectModal';
 import Avatar from '../components/Avatar';
 import { generateWelcomeMessage } from '../services/openai';
 import type { Goal } from '../types';
@@ -31,11 +32,13 @@ const Home: React.FC = () => {
   
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState<Goal | undefined>(undefined);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [draggedGoal, setDraggedGoal] = useState<Goal | null>(null);
   const [dragOverGoal, setDragOverGoal] = useState<Goal | null>(null);
+  const [showPositionModal, setShowPositionModal] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState(0);
   
   // Ref to track if we're currently reordering goals
   const isReordering = useRef(false);
@@ -92,7 +95,7 @@ const Home: React.FC = () => {
   };
 
   const handleCreateGoal = () => {
-    setSelectedGoal(undefined);
+    setSelectedGoal(null);
     setIsFormOpen(true);
   };
 
@@ -135,7 +138,7 @@ const Home: React.FC = () => {
       
       // Close the form
       setIsFormOpen(false);
-      setSelectedGoal(undefined);
+      setSelectedGoal(null);
     } catch (error) {
       console.error('Error saving goal:', error);
     }
@@ -143,7 +146,7 @@ const Home: React.FC = () => {
 
   const handleFormCancel = () => {
     setIsFormOpen(false);
-    setSelectedGoal(undefined);
+    setSelectedGoal(null);
   };
 
   const handleDeleteGoal = () => {
@@ -165,7 +168,7 @@ const Home: React.FC = () => {
         
         setShowDeleteConfirmation(false);
         setIsFormOpen(false);
-        setSelectedGoal(undefined);
+        setSelectedGoal(null);
         
         // Ensure UI is refreshed
         setIsLoading(false);
@@ -196,6 +199,21 @@ const Home: React.FC = () => {
   const touchStartY = useRef(0);
   const touchStartX = useRef(0);
   const touchedGoal = useRef<Goal | null>(null);
+  
+  // Check if device is mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
   
   // Handle drag start for custom sorting
   const handleDragStart = (goal: Goal) => {
@@ -374,6 +392,8 @@ const Home: React.FC = () => {
     }, 300); // Increased timeout to ensure no accidental clicks
   };
 
+  // Remove duplicate declarations
+
   if (authLoading || goalsLoading || isLoading) {
     return (
       <div className="auth-container">
@@ -467,10 +487,21 @@ const Home: React.FC = () => {
                 {sortMethod === 'custom' && (
                   <div 
                     className="drag-handle"
+                    onClick={() => {
+                      if (isMobile && sortMethod === 'custom') {
+                        // On mobile, show position selection modal
+                        const position = filteredGoals.findIndex(g => g.id === goal.id) + 1;
+                        setSelectedGoal(goal);
+                        setCurrentPosition(position);
+                        setShowPositionModal(true);
+                      }
+                    }}
                     onTouchStart={(e) => {
-                      // Stop propagation to ensure only the handle initiates the drag
-                      e.stopPropagation();
-                      handleTouchStart(e, goal);
+                      if (!isMobile && sortMethod === 'custom') {
+                        // On desktop, use drag and drop
+                        e.stopPropagation();
+                        handleTouchStart(e, goal);
+                      }
                     }}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -510,13 +541,46 @@ const Home: React.FC = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <GoalForm
-              goal={selectedGoal}
+              goal={selectedGoal || undefined}
               onSubmit={handleFormSubmit}
               onCancel={handleFormCancel}
               onDelete={selectedGoal ? handleDeleteGoal : undefined}
             />
           </div>
         </div>
+      )}
+      
+      {/* Position selection modal for mobile */}
+      {showPositionModal && selectedGoal && (
+        <PositionSelectModal
+          goal={selectedGoal}
+          totalGoals={filteredGoals.length}
+          currentPosition={currentPosition}
+          onClose={() => setShowPositionModal(false)}
+          onPositionSelect={async (goalId, newPosition) => {
+            // Convert 1-based position to 0-based index
+            const targetIndex = newPosition - 1;
+            
+            // Calculate new sort order
+            let newSortOrder: number;
+            
+            if (targetIndex === 0) {
+              // If moving to the beginning, use a value smaller than the first item
+              newSortOrder = ((filteredGoals[0] as any).sortOrder || 0) - 10;
+            } else if (targetIndex === filteredGoals.length - 1) {
+              // If moving to the end, use a value larger than the last item
+              newSortOrder = ((filteredGoals[filteredGoals.length - 1] as any).sortOrder || 0) + 10;
+            } else {
+              // If moving to the middle, use the average of the target and the next item
+              const targetGoal = filteredGoals[targetIndex];
+              const nextGoal = filteredGoals[targetIndex + 1] || targetGoal;
+              newSortOrder = (((targetGoal as any).sortOrder || 0) + ((nextGoal as any).sortOrder || 0)) / 2;
+            }
+            
+            // Update the goal's sort order
+            await updateGoalOrder(goalId, newSortOrder);
+          }}
+        />
       )}
       
       {/* Delete confirmation modal */}
