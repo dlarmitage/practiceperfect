@@ -219,6 +219,10 @@ body {
   padding: 15px;
 }
 
+.text-center {
+  text-align: center;
+}
+
 .position-modal-title {
   font-size: 0.9rem;
   margin-bottom: 10px;

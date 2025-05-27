@@ -53,12 +53,12 @@ const PositionSelectModal: React.FC<PositionSelectModalProps> = ({
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content position-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Move Goal</h2>
+          <h2>Reposition the Goal</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
         <div className="modal-body">
           <p className="position-modal-title">Reposition "{goal.name}"</p>
-          <div className="form-group">
+          <div className="form-group text-center">
             <select 
               id="position-select" 
               value={selectedPosition} 
