@@ -21,6 +21,7 @@ export interface Goal {
   link?: string;
   createdAt: string;
   updatedAt: string;
+  lastClicked?: string; // ISO date string for the last time the goal was clicked
 }
 
 // User type

@@ -217,6 +217,7 @@ export const getGoals = async (sortMethod: SortMethod = 'newest'): Promise<Goal[
     link: goal.link,
     createdAt: goal.created_at,
     updatedAt: goal.updated_at,
+    lastClicked: goal.last_clicked,
     sortOrder: goal.sort_order || 0,
   }));
 };
@@ -255,6 +256,7 @@ export const getGoalById = async (id: string): Promise<Goal> => {
     link: data.link,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+    lastClicked: data.last_clicked,
   };
 };
 
@@ -290,6 +292,7 @@ export const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedA
     user_id: userData.user.id,
     created_at: now,
     updated_at: now,
+    // No last_clicked - it should be null until the user clicks the goal
     sort_order: maxOrder + 1,
   };
   
@@ -334,13 +337,14 @@ export const updateGoalSortOrder = async (id: string, newSortOrder: number): Pro
   
   console.log('Current goal before sort update:', currentGoal);
   
-  // Now update only the sort_order field, keeping the original updated_at
+  // Now update only the sort_order field, keeping the original updated_at and last_clicked
   const { error } = await supabase
     .from('goals')
     .update({
       sort_order: newSortOrder,
-      // Explicitly set updated_at to its current value to prevent auto-update
-      updated_at: currentGoal.updated_at
+      // Explicitly set updated_at and last_clicked to their current values to prevent auto-update
+      updated_at: currentGoal.updated_at,
+      last_clicked: currentGoal.last_clicked // Preserve the last_clicked timestamp
     })
     .eq('id', id)
     .eq('user_id', userData.user.id);
@@ -378,6 +382,7 @@ export const updateGoalSortOrder = async (id: string, newSortOrder: number): Pro
     link: updatedGoal.link,
     createdAt: updatedGoal.created_at,
     updatedAt: updatedGoal.updated_at,
+    lastClicked: updatedGoal.last_clicked,
   };
   
   // Add the sort order as any to avoid TypeScript errors
@@ -412,10 +417,13 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   if ('sortOrder' in updates) normalizedUpdates.sort_order = updates.sortOrder;
   else if ('sort_order' in updates) normalizedUpdates.sort_order = updates.sort_order;
   
+  if ('lastClicked' in updates) normalizedUpdates.last_clicked = updates.lastClicked;
+  else if ('last_clicked' in updates) normalizedUpdates.last_clicked = updates.last_clicked;
+  
   // Copy any other properties directly
   for (const key in updates) {
-    if (!['targetCount', 'isActive', 'startDate', 'dueDate', 'sortOrder'].includes(key) && 
-        !['target_count', 'is_active', 'start_date', 'due_date', 'sort_order'].includes(key)) {
+    if (!['targetCount', 'isActive', 'startDate', 'dueDate', 'sortOrder', 'lastClicked'].includes(key) && 
+        !['target_count', 'is_active', 'start_date', 'due_date', 'sort_order', 'last_clicked'].includes(key)) {
       normalizedUpdates[key] = (updates as any)[key];
     }
   }
@@ -492,6 +500,7 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     link: data.link,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+    lastClicked: data.last_clicked,
   };
 };
 
@@ -521,13 +530,15 @@ export const incrementGoalCount = async (id: string): Promise<Goal> => {
   
   // Increment the count
   const newCount = (currentGoal.count || 0) + 1;
+  const now = new Date().toISOString();
   
-  // Update the count
+  // Update the count and last_clicked timestamp
   const { data, error } = await supabase
     .from('goals')
     .update({
       count: newCount,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
+      last_clicked: now // Update the last_clicked timestamp
     })
     .eq('id', id)
     .eq('user_id', userData.user.id) // Ensure the goal belongs to the current user
@@ -554,6 +565,7 @@ export const incrementGoalCount = async (id: string): Promise<Goal> => {
     link: data.link,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+    lastClicked: data.last_clicked,
   };
 };
 

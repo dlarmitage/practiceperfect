@@ -26,31 +26,31 @@ export const calculateGoalStatus = (goal: Goal): GoalStatus => {
   }
   
   // Check if the goal is out of cadence
-  const lastUpdated = new Date(goal.updatedAt);
-  const isOutOfCadence = isGoalOutOfCadence(goal.cadence, lastUpdated, goal.count, goal.targetCount);
+  // If lastClicked is null, the goal is automatically out of cadence (yellow)
+  // because the user has never clicked it
+  if (!goal.lastClicked) {
+    return 'out-of-cadence';
+  }
+  
+  // Otherwise, check if it's out of cadence based on the last interaction time
+  const lastInteraction = new Date(goal.lastClicked);
+  const isOutOfCadence = isGoalOutOfCadence(goal.cadence, lastInteraction, goal.count, goal.targetCount);
   
   return isOutOfCadence ? 'out-of-cadence' : 'active';
 };
 
 /**
- * Determines if a goal is out of its practice cadence
- * 
- * @param cadence - The practice cadence of the goal
- * @param lastUpdated - The date when the goal was last updated
- * @returns Whether the goal is out of cadence
- */
-/**
  * Determines if a goal is out of its practice cadence based on count, target, and time
  * 
  * @param cadence - The practice cadence of the goal
- * @param lastUpdated - The date when the goal was last updated
+ * @param lastInteraction - The date when the goal was last interacted with
  * @param currentCount - The current count of the goal
  * @param targetCount - The target count of the goal
  * @returns Whether the goal is out of cadence
  */
 export const isGoalOutOfCadence = (
   cadence: Cadence, 
-  lastUpdated: Date,
+  lastInteraction: Date,
   currentCount: number,
   targetCount: number
 ): boolean => {
@@ -64,8 +64,8 @@ export const isGoalOutOfCadence = (
   // Calculate expected progress based on time elapsed and cadence
   switch (cadence) {
     case 'hourly': {
-      // For hourly goals, check how many hours have passed since last update
-      const hoursSinceLastUpdate = (now.getTime() - lastUpdated.getTime()) / (60 * 60 * 1000);
+      // For hourly goals, check how many hours have passed since last interaction
+      const hoursSinceLastUpdate = (now.getTime() - lastInteraction.getTime()) / (60 * 60 * 1000);
       
       // Calculate expected count by now based on target per hour
       // If target is 5 per hour, and 2 hours passed, expected count would be current + 10
@@ -77,11 +77,11 @@ export const isGoalOutOfCadence = (
     }
       
     case 'daily': {
-      // Check if the last update was on a different day
+      // Check if the last interaction was on a different day
       const dayDifference = (
-        now.getDate() !== lastUpdated.getDate() ||
-        now.getMonth() !== lastUpdated.getMonth() ||
-        now.getFullYear() !== lastUpdated.getFullYear()
+        now.getDate() !== lastInteraction.getDate() ||
+        now.getMonth() !== lastInteraction.getMonth() ||
+        now.getFullYear() !== lastInteraction.getFullYear()
       );
       
       // If a day has passed and the target hasn't been met, it's out of cadence
@@ -90,7 +90,7 @@ export const isGoalOutOfCadence = (
       
     case 'weekly': {
       // Check if more than 7 days have passed
-      const diffTime = Math.abs(now.getTime() - lastUpdated.getTime());
+      const diffTime = Math.abs(now.getTime() - lastInteraction.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays > 7;
     }
@@ -98,8 +98,8 @@ export const isGoalOutOfCadence = (
     case 'monthly': {
       // Check if we're in a different month
       return (
-        now.getMonth() !== lastUpdated.getMonth() ||
-        now.getFullYear() !== lastUpdated.getFullYear()
+        now.getMonth() !== lastInteraction.getMonth() ||
+        now.getFullYear() !== lastInteraction.getFullYear()
       );
     }
       
