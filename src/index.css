@@ -177,8 +177,52 @@ body {
 
 /* Position selection modal styles */
 .position-modal {
-  max-width: 300px;
-  width: 90%;
+  max-width: 250px;
+  width: 80%;
+}
+
+.position-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.position-modal .modal-header h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.position-modal .close-button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .position-modal {
+    max-width: 220px;
+    width: 75%;
+  }
+}
+
+.position-modal .modal-body {
+  padding: 15px;
+}
+
+.position-modal-title {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
 .position-select {
@@ -188,7 +232,7 @@ body {
   border: 1px solid #ccc;
   background-color: #fff;
   font-size: 16px;
-  margin-top: 8px;
+  margin-top: 0;
   appearance: menulist;
 }
 
