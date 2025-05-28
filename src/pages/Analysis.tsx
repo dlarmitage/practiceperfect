@@ -122,10 +122,8 @@ const Analysis: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 pb-24">
+    <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Practice Analysis</h1>
-        
         <div className="flex space-x-2">
           <button 
             onClick={() => setTimePeriod('7days')}

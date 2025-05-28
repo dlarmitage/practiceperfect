@@ -1,17 +1,24 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useGoals } from '../context/GoalContext';
 
 const BottomNavigation: React.FC = () => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { goals } = useGoals();
+  
+  // Hide navigation bar if user has no goals yet
+  if (goals.length === 0) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
       <div className="flex justify-around items-center h-16">
         <Link 
-          to="/" 
+          to="/home" 
           className={`flex flex-col items-center justify-center w-full h-full ${
-            currentPath === '/' ? 'text-blue-600' : 'text-gray-600'
+            currentPath === '/home' ? 'text-blue-600' : 'text-gray-600'
           }`}
         >
           <svg 

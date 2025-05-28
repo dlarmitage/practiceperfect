@@ -9,8 +9,9 @@ import GoalButton from '../components/GoalButton';
 import GoalForm from '../components/GoalForm';
 import ConfirmationModal from '../components/ConfirmationModal';
 import PositionSelectModal from '../components/PositionSelectModal';
-import Avatar from '../components/Avatar';
 import { generateWelcomeMessage } from '../services/openai';
+import PWAInstallModal from '../components/PWAInstallModal';
+import { isRunningAsPWA } from '../utils/deviceDetection';
 
 /**
  * Home page component displaying the user's goals
@@ -41,6 +42,8 @@ const Home: React.FC = () => {
   const [dragOverGoal, setDragOverGoal] = useState<Goal | null>(null);
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
+  const [isPWA, setIsPWA] = useState(false);
+  const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   
   // Ref to track if we're currently reordering goals
   const isReordering = useRef(false);
@@ -52,6 +55,46 @@ const Home: React.FC = () => {
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
+  
+  // Check if the app is running as a PWA and if we should show the install prompt
+  useEffect(() => {
+    // Check if app is running as PWA
+    const isPWAStatus = isRunningAsPWA();
+    setIsPWA(isPWAStatus);
+    
+    // Don't show prompt if already running as PWA
+    if (isPWAStatus) return;
+    
+    // Check if user has dismissed the prompt permanently
+    const dontShowAgain = localStorage.getItem('pwa_install_dont_show_again');
+    if (dontShowAgain === 'true') return;
+    
+    // Only show prompt if user has been active (has goals)
+    if (goals.length > 0) {
+      // Wait a moment before showing the modal for better UX
+      const timer = setTimeout(() => {
+        setShowPWAPrompt(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [goals.length]);
+  
+  // Handle beforeinstallprompt event
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      window.deferredPrompt = e;
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchWelcomeMessage = async () => {
@@ -409,77 +452,91 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <img src="/Logo.webp" alt="PracticePerfect Logo" className="h-10" />
-          <Avatar size="md" />
-        </div>
-      </header>
-      
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Welcome message */}
-        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-700">{welcomeMessage}</p>
-        </div>
+        {/* Welcome message - only show when there are goals */}
+        {goals.length > 0 && (
+          <div className="mb-6">
+            <p className="text-gray-600">{welcomeMessage}</p>
+          </div>
+        )}
         
-        {/* Controls */}
-        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-          <div className="flex items-center">
+        {/* PWA Installation Modal */}
+        {showPWAPrompt && !isPWA && (
+          <PWAInstallModal 
+            onClose={() => setShowPWAPrompt(false)}
+            onDontShowAgain={() => {
+              localStorage.setItem('pwa_install_dont_show_again', 'true');
+              setShowPWAPrompt(false);
+            }}
+          />
+        )}
+        
+        {/* Controls - only show when there are goals */}
+        {goals.length > 0 && (
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+            {/* Left side controls */}
             <div className="flex items-center">
               <input
                 type="checkbox"
                 id="show-inactive"
                 checked={showInactive}
                 onChange={(e) => setShowInactive(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
               />
               <label htmlFor="show-inactive" className="ml-2 text-sm text-gray-700 whitespace-nowrap">
                 Show Inactive
               </label>
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <select
-                value={sortMethod}
-                onChange={(e) => setSortMethod(e.target.value as SortMethod)}
-                className="form-select text-sm pr-8"
-                aria-label="Sort goals by"
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-                <option value="custom">Custom</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </div>
             
-            <button
-              onClick={handleCreateGoal}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              aria-label="Add new goal"
-            >
-              + New Goal
-            </button>
+            {/* Right side controls */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center">
+                <span className="mr-2 text-sm text-gray-700">Sort by:</span>
+                <select
+                  className="form-select text-sm pr-8"
+                  value={sortMethod}
+                  onChange={(e) => setSortMethod(e.target.value as SortMethod)}
+                  aria-label="Sort goals by"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              
+              <button
+                onClick={handleCreateGoal}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Add Goal
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Goals grid */}
         {filteredGoals.length === 0 ? (
           <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
             {goals.length === 0 ? (
               <div className="space-y-4">
-                <svg className="w-16 h-16 mx-auto text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-800">Welcome to Practice Perfect!</h3>
-                <p className="text-gray-600 max-w-md mx-auto">
-                  You don't have any goals yet. Click the "New Goal" button above to get started!
+                <h3 className="text-2xl font-bold text-gray-800">Welcome to Practice Perfect!</h3>
+                <p className="text-gray-600 max-w-md mx-auto text-lg">
+                  Track your practice goals and improve your skills with deliberate practice.
                 </p>
+                <div className="pt-2">
+                  <button
+                    onClick={handleCreateGoal}
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  >
+                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Create Your First Goal
+                  </button>
+                </div>
                 
                 <div className="mt-6 bg-blue-50 p-5 rounded-lg border border-blue-100 text-left max-w-lg mx-auto">
                   <h4 className="font-medium text-blue-800 mb-3 flex items-center">

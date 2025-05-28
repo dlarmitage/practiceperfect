@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { updateProfile, updateEmail, deleteAccount } from '../services/supabase';
+import { updateProfile, updateEmail } from '../services/supabase';
 import ConfirmationModal from './ConfirmationModal';
 import PasswordChangeModal from './PasswordChangeModal';
 
@@ -9,7 +9,7 @@ interface ProfileModalProps {
 }
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, deleteAccount } = useAuth();
   
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,6 +19,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -87,15 +88,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
     try {
       setIsLoading(true);
-      await deleteAccount(deleteConfirmPassword);
-      onClose();
-      // Sign out will be handled by the auth context
+      const result = await deleteAccount!(deleteConfirmPassword);
+      
+      // Close the confirmation modal first
+      setShowDeleteConfirmation(false);
+      
+      // Show success message in the main profile modal
+      setDeleteSuccess(result.message);
+      
+      // Redirect to login page after a short delay
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
     } catch (error) {
       console.error('Error deleting account:', error);
-      setDeleteError('Failed to delete account. Please check your password and try again.');
-    } finally {
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete account. Please check your password and try again.');
       setIsLoading(false);
-      setShowDeleteConfirmation(false);
     }
   };
   
@@ -116,6 +124,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         <div className="p-4">
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
           {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">{success}</div>}
+          {deleteSuccess && (
+            <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
+              <p className="font-medium">{deleteSuccess}</p>
+              <p className="mt-2 text-sm">Redirecting to login page...</p>
+            </div>
+          )}
           
           <form onSubmit={handleUpdate} className="space-y-6">
             <div className="space-y-4">

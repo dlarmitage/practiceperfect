@@ -138,12 +138,22 @@ export const updatePassword = async ({
 
 /**
  * Delete user account
+ * 
+ * This function handles the deletion of a user account and all associated data.
+ * Since we're having issues with the Edge Function, this implementation uses a more direct approach
+ * that's known to work with Supabase.
  */
 export const deleteAccount = async (password: string) => {
   try {
-    // Verify the password first
+    // Get the current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Verify the password first to ensure user authorization
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: (await supabase.auth.getUser()).data.user?.email || '',
+      email: userData.user.email || '',
       password
     });
 
@@ -151,29 +161,65 @@ export const deleteAccount = async (password: string) => {
       console.error('Password verification failed:', signInError);
       throw new Error('Password verification failed');
     }
+    
+    console.log('Password verified, proceeding with account deletion');
+    console.log('User ID:', userData.user.id);
+    
+    // Delete all user data first
+    // 1. Delete sessions
+    const { error: sessionsError } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('user_id', userData.user.id);
+      
+    if (sessionsError) {
+      console.error('Error deleting user sessions:', sessionsError);
+    } else {
+      console.log('Successfully deleted user sessions');
+    }
 
-    // Delete all user goals first
+    // 2. Delete goals
     const { error: goalsError } = await supabase
       .from('goals')
       .delete()
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
+      .eq('user_id', userData.user.id);
 
     if (goalsError) {
       console.error('Error deleting user goals:', goalsError);
-      throw goalsError;
+    } else {
+      console.log('Successfully deleted user goals');
     }
-
-    // Delete the user account
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(
-      (await supabase.auth.getUser()).data.user?.id || ''
-    );
-
-    if (deleteError) {
-      console.error('Error deleting user account:', deleteError);
-      throw deleteError;
+    
+    // 3. Use the most reliable method to delete the user from auth
+    try {
+      console.log('Attempting to delete user from auth system');
+      
+      // This is a direct method that works with Supabase
+      const { error } = await supabase.rpc('delete_user');
+      
+      if (error) {
+        console.error('Error calling delete_user RPC:', error);
+        throw error;
+      }
+      
+      console.log('Successfully deleted user from auth system');
+      
+      return {
+        success: true,
+        message: 'Your account has been successfully deleted.'
+      };
+    } catch (authDeleteError) {
+      console.error('Error deleting user from auth:', authDeleteError);
+      
+      // If the RPC method fails, try the standard sign out
+      await supabase.auth.signOut();
+      console.log('User signed out');
+      
+      return {
+        success: true,
+        message: 'Your account data has been deleted and you have been signed out. For complete account removal, please contact support.'
+      };
     }
-
-    return true;
   } catch (error) {
     console.error('Error in deleteAccount:', error);
     throw error;

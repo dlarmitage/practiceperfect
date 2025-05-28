@@ -114,7 +114,6 @@ const Sessions: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">Practice Sessions</h1>
       
       <div className="mb-6">
         <div className="flex justify-between items-end">
@@ -230,8 +229,16 @@ const Sessions: React.FC = () => {
         </div>
       ) : !isLoading && sessions.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No sessions found for this goal.</p>
-          <p className="text-sm text-gray-500">Use the "New Session" button above to start tracking your practice.</p>
+          <p className="text-gray-500 mb-4">No practice sessions found for this goal.</p>
+          <p className="text-sm text-gray-500 mb-4">Use the "New Session" button above to start tracking your practice.</p>
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-md inline-block mx-auto">
+            <p className="text-sm text-blue-700 flex items-center">
+              <svg className="h-5 w-5 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span><strong>Pro Tip:</strong> You can also press on a goal in the <strong>Goals tab</strong> to quickly start a new session.</span>
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
