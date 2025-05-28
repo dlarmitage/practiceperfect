@@ -4,7 +4,6 @@ import { useGoals } from '../context/GoalContext';
 import type { Goal, Session } from '../types';
 import { format, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import DatabaseTest from '../components/DatabaseTest';
 import SessionTimer from '../components/SessionTimer';
 
 const Sessions: React.FC = () => {
@@ -232,16 +231,7 @@ const Sessions: React.FC = () => {
       ) : !isLoading && sessions.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No sessions found for this goal.</p>
-          <button
-            onClick={() => setShowSessionTimer(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            disabled={!selectedGoal}
-          >
-            Start a Session
-          </button>
-          <div className="mt-8">
-            <DatabaseTest />
-          </div>
+          <p className="text-sm text-gray-500">Use the "New Session" button above to start tracking your practice.</p>
         </div>
       ) : (
         <div className="space-y-4">
