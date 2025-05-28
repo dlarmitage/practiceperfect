@@ -79,11 +79,52 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
   // Count is now directly editable via input field
 
   return (
-    <div className="goal-form-container">
-      <h2 className="goal-form-title" style={{ marginBottom: '0.25rem' }}>{goal ? 'Edit Goal' : 'Create New Goal'}</h2>
-      <form onSubmit={handleSubmit} className="compact-form" style={{ maxHeight: 'calc(100vh - 8rem)', overflowY: 'auto', marginTop: '0' }}>
-        <div className="form-group compact">
-          <label htmlFor="name" className="form-label">
+    <div className="bg-white rounded-lg shadow-md p-4 w-full max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xl font-bold text-gray-800">{goal ? 'Edit Goal' : 'Create New Goal'}</h2>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              disabled={new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0))}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="isActive" className="ml-2 text-sm text-gray-700 whitespace-nowrap">
+              Active
+              {new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0)) && (
+                <span className="text-xs text-gray-500 ml-1">(future)</span>
+              )}
+            </label>
+          </div>
+          
+          {goal && (
+            <div className="flex items-center">
+              <span className="text-sm text-gray-700 mr-2">Count:</span>
+              <button 
+                type="button" 
+                className="px-2 py-1 border border-gray-300 bg-gray-100 rounded-l-md hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onClick={() => setCount(Math.max(0, count - 1))}
+                aria-label="Decrease count"
+              >−</button>
+              <span className="px-2 py-1 border-y border-gray-300 bg-white text-center min-w-[40px] inline-block">
+                {count}
+              </span>
+              <button 
+                type="button" 
+                className="px-2 py-1 border border-gray-300 bg-gray-100 rounded-r-md hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onClick={() => setCount(count + 1)}
+                aria-label="Increase count"
+              >+</button>
+            </div>
+          )}
+        </div>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-1.5" style={{ maxHeight: 'calc(100vh - 8rem)', overflowY: 'auto' }}>
+        <div className="space-y-0.5">
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
             Name *
           </label>
           <input
@@ -92,26 +133,26 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="form-input"
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         
-        <div className="form-group compact">
-          <label htmlFor="description" className="form-label">
+        <div className="space-y-0.5">
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
             Description
           </label>
           <textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className="form-input"
+            rows={1}
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         
-        <div className="form-row">
-          <div className="form-group compact half">
-            <label htmlFor="cadence" className="form-label">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-0.5">
+            <label htmlFor="cadence" className="block text-sm font-medium text-gray-700">
               Cadence *
             </label>
             <select
@@ -119,7 +160,7 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
               value={cadence}
               onChange={(e) => setCadence(e.target.value as Cadence)}
               required
-              className="form-select"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
               <option value="hourly">Hourly</option>
               <option value="daily">Daily</option>
@@ -128,29 +169,23 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
             </select>
           </div>
           
-          <div className="form-group compact half">
-            <label htmlFor="targetCount" className="form-label">
+          <div className="space-y-0.5">
+            <label htmlFor="targetCount" className="block text-sm font-medium text-gray-700">
               Target *
             </label>
-            <div className="number-input-container">
+            <div className="flex items-center w-full">
               <button 
                 type="button" 
-                className="number-control-button"
+                className="px-2 py-1 text-sm border border-gray-300 bg-gray-100 rounded-l-md hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 flex-shrink-0"
                 onClick={() => setTargetCount(Math.max(1, targetCount - 1))}
                 aria-label="Decrease target count"
               >−</button>
-              <input
-                type="number"
-                id="targetCount"
-                value={targetCount}
-                onChange={(e) => setTargetCount(parseInt(e.target.value) || 1)}
-                min="1"
-                required
-                className="form-input number-input"
-              />
+              <span className="px-2 py-1 text-sm border-y border-gray-300 bg-white text-center flex-grow">
+                {targetCount}
+              </span>
               <button 
                 type="button" 
-                className="number-control-button"
+                className="px-2 py-1 text-sm border border-gray-300 bg-gray-100 rounded-r-md hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 flex-shrink-0"
                 onClick={() => setTargetCount(targetCount + 1)}
                 aria-label="Increase target count"
               >+</button>
@@ -158,9 +193,9 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
           </div>
         </div>
         
-        <div className="form-row">
-          <div className="form-group compact half">
-            <label htmlFor="startDate" className="form-label">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-0.5">
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
               Start Date
             </label>
             <input
@@ -168,12 +203,12 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
               id="startDate"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="form-input"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           
-          <div className="form-group compact half">
-            <label htmlFor="dueDate" className="form-label">
+          <div className="space-y-0.5">
+            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
               Due Date
             </label>
             <input
@@ -181,13 +216,13 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
               id="dueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="form-input"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
         
-        <div className="form-group compact">
-          <label htmlFor="link" className="form-label">
+        <div className="space-y-0.5">
+          <label htmlFor="link" className="block text-sm font-medium text-gray-700">
             Link
           </label>
           <input
@@ -195,83 +230,36 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
             id="link"
             value={link}
             onChange={(e) => setLink(e.target.value)}
-            className="form-input"
+            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             placeholder="https://example.com"
           />
         </div>
         
-        <div className="form-row">
-          <div className="form-group compact half checkbox-group">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              disabled={new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0))}
-            />
-            <label htmlFor="isActive" className="checkbox-label">
-              Active
-              {new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0)) && (
-                <span className="text-xs text-gray-500 ml-1">(auto-inactive until start date)</span>
-              )}
-            </label>
-          </div>
-
-          {goal && (
-            <div className="form-group compact half count-input-group">
-              <label htmlFor="count" className="count-label">
-                Count:
-              </label>
-              <div className="number-input-container">
-                <button 
-                  type="button" 
-                  className="number-control-button"
-                  onClick={() => setCount(Math.max(0, count - 1))}
-                  aria-label="Decrease count"
-                >−</button>
-                <input
-                  type="number"
-                  id="count"
-                  value={count}
-                  onChange={(e) => setCount(parseInt(e.target.value) || 0)}
-                  min="0"
-                  className="count-input number-input"
-                  maxLength={3}
-                />
-                <button 
-                  type="button" 
-                  className="number-control-button"
-                  onClick={() => setCount(count + 1)}
-                  aria-label="Increase count"
-                >+</button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Grid removed - Active checkbox and Count controls moved to header */}
         
-        <div className="button-group compact">
+        <div className="flex justify-between pt-2 mt-2 border-t border-gray-200">
           {goal && onDelete && (
             <button
               type="button"
               onClick={onDelete}
-              className="primary-button"
+              className="btn btn-danger text-sm px-3 py-1"
             >
               Delete
             </button>
           )}
           
-          <div className="action-buttons">
+          <div className="flex space-x-3 ml-auto">
             <button
               type="button"
               onClick={onCancel}
-              className="primary-button"
+              className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-500"
             >
               Cancel
             </button>
             
             <button
               type="submit"
-              className="primary-button"
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               {goal ? 'Update' : 'Create'}
             </button>

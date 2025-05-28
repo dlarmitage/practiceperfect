@@ -98,12 +98,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   };
   
   return (
-    <div className="modal-overlay">
-      <div className="profile-modal">
-        <div className="profile-header">
-          <h2>User Profile</h2>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-800">User Profile</h2>
           <button 
-            className="close-button" 
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors" 
             onClick={onClose}
             aria-label="Close"
           >
@@ -111,15 +111,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           </button>
         </div>
         
-        <div className="profile-content">
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
+        <div className="p-4">
+          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
+          {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">{success}</div>}
           
-          <form onSubmit={handleUpdate}>
-            <div className="form-section">
-              <h3 className="section-subtitle">Personal Information</h3>
-              <div className="form-group">
-                <label htmlFor="firstName">First Name</label>
+          <form onSubmit={handleUpdate} className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-700 border-b border-gray-200 pb-2">Personal Information</h3>
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">First Name</label>
                 <input
                   id="firstName"
                   type="text"
@@ -127,27 +127,29 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   onChange={(e) => setFirstName(e.target.value)}
                   required
                   autoFocus
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
             
-            <div className="form-section">
-              <h3 className="section-subtitle">Account Settings</h3>
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-700 border-b border-gray-200 pb-2">Account Settings</h3>
+              <div className="space-y-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               
-              <div className="form-group">
-                <label htmlFor="currentPassword">
+              <div className="space-y-2">
+                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
                   Current Password
-                  <span className="input-hint">(required only if changing email)</span>
+                  <span className="ml-2 text-xs text-gray-500">(required only if changing email)</span>
                 </label>
                 <input
                   id="currentPassword"
@@ -155,17 +157,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter password to change email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
             
-
-            
-            <div className="modal-footer">
-              <div className="footer-actions-left">
+            <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+              <div className="flex space-x-2">
                 <button 
                   type="button" 
-                  className="primary-button danger-button"
+                  className="btn btn-danger text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleDeleteAccountRequest}
                   disabled={isLoading}
                 >
@@ -174,7 +175,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                 
                 <button 
                   type="button" 
-                  className="secondary-button"
+                  className="btn btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handlePasswordModalOpen}
                   disabled={isLoading}
                 >
@@ -184,7 +185,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
               
               <button 
                 type="submit" 
-                className="primary-button"
+                className="btn btn-primary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
                 {isLoading ? 'Updating...' : 'Update Profile'}
@@ -199,9 +200,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         title="Delete Account"
         message={
           <>
-            <p>Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.</p>
-            <div className="form-group">
-              <label htmlFor="deleteConfirmPassword">Enter your password to confirm</label>
+            <p className="mb-4">Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.</p>
+            <div className="space-y-2">
+              <label htmlFor="deleteConfirmPassword" className="block text-sm font-medium text-gray-700">Enter your password to confirm</label>
               <input
                 id="deleteConfirmPassword"
                 type="password"
@@ -209,6 +210,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                 onChange={(e) => setDeleteConfirmPassword(e.target.value)}
                 required
                 autoFocus
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </>

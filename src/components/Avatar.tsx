@@ -50,11 +50,11 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
     return `hsl(${h}, 70%, 60%)`;
   };
   
-  // Determine size class
+  // Determine size class based on the size prop
   const sizeClass = {
-    sm: 'avatar-sm',
-    md: 'avatar-md',
-    lg: 'avatar-lg'
+    sm: 'h-8 w-8 text-xs',
+    md: 'h-10 w-10 text-sm',
+    lg: 'h-12 w-12 text-base'
   }[size];
   
   // Close dropdown when clicking outside
@@ -81,9 +81,9 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
   };
 
   return (
-    <div className="avatar-container" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       <button 
-        className={`avatar ${sizeClass}`}
+        className={`${sizeClass} rounded-full flex items-center justify-center font-semibold text-white transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
         style={{ backgroundColor: getBackgroundColor() }}
         onClick={() => setShowDropdown(!showDropdown)}
         aria-label="User profile"
@@ -94,28 +94,28 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
       </button>
       
       {showDropdown && (
-        <div className="avatar-dropdown">
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 ring-1 ring-black ring-opacity-5 animate-fadeIn">
           <button 
-            className="dropdown-item"
+            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             onClick={() => {
               setShowDropdown(false);
               setShowProfileModal(true);
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
             Profile
           </button>
           <button 
-            className="dropdown-item"
+            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             onClick={() => {
               setShowDropdown(false);
               handleSignOut();
             }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
               <line x1="21" y1="12" x2="9" y2="12"></line>

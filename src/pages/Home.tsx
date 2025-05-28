@@ -396,10 +396,10 @@ const Home: React.FC = () => {
 
   if (authLoading || goalsLoading || isLoading) {
     return (
-      <div className="auth-container">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="spinner mx-auto"></div>
-          <p className="mt-3">Loading...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-3 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -407,23 +407,23 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="header">
-        <div className="header-content">
-          <img src="/Logo.webp" alt="PracticePerfect Logo" className="logo-image" />
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          <img src="/Logo.webp" alt="PracticePerfect Logo" className="h-10" />
           <Avatar size="md" />
         </div>
       </header>
       
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Welcome message */}
-        <div className="welcome-message">
-          <p>{welcomeMessage}</p>
+        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-700">{welcomeMessage}</p>
         </div>
         
         {/* Controls */}
-        <div className="controls">
-          <div className="controls-left">
-            <div className="checkbox-group">
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <div className="flex items-center">
+            <div className="flex items-center">
               <input
                 type="checkbox"
                 id="show-inactive"
@@ -431,29 +431,34 @@ const Home: React.FC = () => {
                 onChange={(e) => setShowInactive(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <label htmlFor="show-inactive" className="checkbox-label">
+              <label htmlFor="show-inactive" className="ml-2 text-sm text-gray-700 whitespace-nowrap">
                 Show Inactive
               </label>
             </div>
           </div>
           
-          <div className="controls-right">
-            <div className="sort-dropdown">
+          <div className="flex items-center space-x-3">
+            <div className="relative">
               <select
                 value={sortMethod}
                 onChange={(e) => setSortMethod(e.target.value as SortMethod)}
-                className="sort-select"
+                className="form-select text-sm pr-8"
                 aria-label="Sort goals by"
               >
                 <option value="newest">Newest</option>
                 <option value="oldest">Oldest</option>
                 <option value="custom">Custom</option>
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
             </div>
             
             <button
               onClick={handleCreateGoal}
-              className="primary-button"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               aria-label="Add new goal"
             >
               + New Goal
@@ -463,19 +468,19 @@ const Home: React.FC = () => {
         
         {/* Goals grid */}
         {filteredGoals.length === 0 ? (
-          <div className="welcome-message text-center">
-            <p>
+          <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
+            <p className="text-gray-600">
               {goals.length === 0 
                 ? "You don't have any goals yet. Create your first goal to get started!" 
-                : "You don't have any active goals. Enable 'Show Inactive Goals' to see your inactive goals."}
+                : "You don't have any active goals. Enable 'Show Inactive' to see your inactive goals."}
             </p>
           </div>
         ) : (
-          <div className="goals-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredGoals.map((goal) => (
               <div 
                 key={goal.id}
-                className={`goal-container ${dragOverGoal?.id === goal.id ? 'drag-over' : ''} ${sortMethod === 'custom' ? 'draggable' : ''} ${draggedGoal?.id === goal.id ? 'being-dragged' : ''}`}
+                className={`relative ${dragOverGoal?.id === goal.id ? 'border-2 border-blue-400 rounded-lg' : ''} ${sortMethod === 'custom' ? 'cursor-move' : ''} ${draggedGoal?.id === goal.id ? 'opacity-50 transform scale-105' : ''}`}
                 draggable={sortMethod === 'custom'}
                 onDragStart={() => handleDragStart(goal)}
                 onDragOver={(e) => handleDragOver(e, goal)}
@@ -486,7 +491,7 @@ const Home: React.FC = () => {
               >
                 {sortMethod === 'custom' && (
                   <div 
-                    className="drag-handle"
+                    className="absolute top-2 left-2 z-10 w-8 h-8 flex items-center justify-center bg-white/80 rounded-full shadow-sm cursor-move hover:bg-gray-100 transition-colors"
                     onClick={() => {
                       if (isMobile && sortMethod === 'custom') {
                         // On mobile, show position selection modal
@@ -504,7 +509,7 @@ const Home: React.FC = () => {
                       }
                     }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
                       <line x1="4" y1="6" x2="20" y2="6"></line>
                       <line x1="4" y1="12" x2="20" y2="12"></line>
                       <line x1="4" y1="18" x2="20" y2="18"></line>
@@ -538,8 +543,8 @@ const Home: React.FC = () => {
       
       {/* Goal form modal */}
       {isFormOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+          <div className="w-full max-w-2xl">
             <GoalForm
               goal={selectedGoal || undefined}
               onSubmit={handleFormSubmit}

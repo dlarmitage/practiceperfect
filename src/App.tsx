@@ -6,8 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
-// We'll implement PWA registration after installing the proper dependencies
-import './index.css';
+import TailwindDemo from './pages/TailwindDemo';
 
 // PWA registration will be implemented after setting up the proper dependencies
 
@@ -42,6 +41,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/tailwind" element={<TailwindDemo />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </GoalProvider>

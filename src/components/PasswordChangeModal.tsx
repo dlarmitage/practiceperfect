@@ -51,12 +51,12 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
   };
   
   return (
-    <div className="modal-overlay">
-      <div className="profile-modal password-modal">
-        <div className="profile-header">
-          <h2>Change Password</h2>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-800">Change Password</h2>
           <button 
-            className="close-button" 
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors" 
             onClick={onClose}
             aria-label="Close"
           >
@@ -64,13 +64,13 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
           </button>
         </div>
         
-        <div className="profile-content">
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
+        <div className="p-4">
+          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
+          {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">{success}</div>}
           
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="currentPassword">Current Password</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">Current Password</label>
               <input
                 id="currentPassword"
                 type="password"
@@ -78,11 +78,12 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
                 autoFocus
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             
-            <div className="form-group">
-              <label htmlFor="newPassword">New Password</label>
+            <div className="space-y-2">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">New Password</label>
               <input
                 id="newPassword"
                 type="password"
@@ -90,11 +91,12 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 minLength={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm New Password</label>
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm New Password</label>
               <input
                 id="confirmPassword"
                 type="password"
@@ -102,13 +104,14 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             
-            <div className="modal-footer">
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <button 
                 type="button" 
-                className="secondary-button"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={onClose}
                 disabled={isLoading}
               >
@@ -117,7 +120,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
               
               <button 
                 type="submit" 
-                className="primary-button"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
                 {isLoading ? 'Updating...' : 'Update Password'}

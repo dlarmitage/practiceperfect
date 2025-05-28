@@ -50,21 +50,26 @@ const PositionSelectModal: React.FC<PositionSelectModalProps> = ({
   }, [selectedPosition]);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content position-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Reposition the Goal</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-lg w-4/5 max-w-xs overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-800">Reposition the Goal</h2>
+          <button 
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors" 
+            onClick={onClose}
+          >
+            ×
+          </button>
         </div>
-        <div className="modal-body">
-          <p className="position-modal-title">Reposition "{goal.name}"</p>
-          <div className="form-group text-center">
+        <div className="p-4">
+          <p className="text-sm font-medium text-gray-700 mb-3 text-center">Reposition "{goal.name}"</p>
+          <div className="text-center">
             <select 
               id="position-select" 
               value={selectedPosition} 
               onChange={handleSelectChange}
               disabled={isSubmitting}
-              className="position-select"
+              className="w-full p-2.5 border border-gray-300 rounded-md bg-white text-base appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {Array.from({ length: totalGoals }, (_, i) => i + 1).map((pos) => (
                 <option key={pos} value={pos}>

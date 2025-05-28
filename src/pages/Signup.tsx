@@ -40,19 +40,19 @@ const Signup: React.FC = () => {
 
   if (success) {
     return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-logo">
-            <img src="/Logo.webp" alt="PracticePerfect Logo" />
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+          <div className="flex justify-center mb-6">
+            <img src="/Logo.webp" alt="PracticePerfect Logo" className="h-12" />
           </div>
-          <h2 className="auth-title">Check your email</h2>
-          <p className="auth-subtitle">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Check your email</h2>
+          <p className="text-center text-gray-600 mb-8">
             We've sent you a confirmation email. Please check your inbox and follow the instructions to complete your registration.
           </p>
-          <div className="auth-actions">
+          <div className="mt-6">
             <button
               onClick={() => navigate('/login')}
-              className="auth-button"
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Go to Login
             </button>
@@ -63,25 +63,25 @@ const Signup: React.FC = () => {
   }
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-logo">
-          <img src="/Logo.webp" alt="PracticePerfect Logo" />
+    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+        <div className="flex justify-center mb-6">
+          <img src="/Logo.webp" alt="PracticePerfect Logo" className="h-12" />
         </div>
-        <h2 className="auth-title">Create your account</h2>
-        <p className="auth-subtitle">
+        <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Create your account</h2>
+        <p className="text-center text-gray-600 mb-6">
           Start tracking your practice goals today
         </p>
         
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="auth-error">
-              <p>{error}</p>
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
           
-          <div className="auth-field">
-            <label htmlFor="first-name" className="auth-label">
+          <div className="space-y-2">
+            <label htmlFor="first-name" className="block text-sm font-medium text-gray-700">
               First Name
             </label>
             <input
@@ -92,13 +92,13 @@ const Signup: React.FC = () => {
               required
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="auth-input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter your first name"
             />
           </div>
           
-          <div className="auth-field">
-            <label htmlFor="email-address" className="auth-label">
+          <div className="space-y-2">
+            <label htmlFor="email-address" className="block text-sm font-medium text-gray-700">
               Email address
             </label>
             <input
@@ -109,13 +109,13 @@ const Signup: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="auth-input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter your email"
             />
           </div>
           
-          <div className="auth-field">
-            <label htmlFor="password" className="auth-label">
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <input
@@ -126,13 +126,13 @@ const Signup: React.FC = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="auth-input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Create a password"
             />
           </div>
           
-          <div className="auth-field">
-            <label htmlFor="confirm-password" className="auth-label">
+          <div className="space-y-2">
+            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
               Confirm Password
             </label>
             <input
@@ -143,7 +143,7 @@ const Signup: React.FC = () => {
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="auth-input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Confirm your password"
             />
           </div>
@@ -151,15 +151,15 @@ const Signup: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="auth-button"
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating account...' : 'Create account'}
           </button>
           
-          <div className="auth-links">
-            <p className="auth-link-text">
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600">
               Already have an account?{' '}
-              <Link to="/login" className="auth-text-link">
+              <Link to="/login" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">
                 Sign in
               </Link>
             </p>

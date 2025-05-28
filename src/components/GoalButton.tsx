@@ -80,26 +80,36 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
     onEdit();
   };
 
+  // Define color classes based on goal status
+  const statusColors = {
+    'not-started': 'bg-goal-not-started',
+    'active': 'bg-goal-active',
+    'out-of-cadence': 'bg-goal-out-of-cadence',
+    'past-due': 'bg-goal-past-due'
+  };
+
   return (
     <div 
-      className={`goal-button goal-button-${status}`}
+      className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg`}
       onClick={handleClick}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="goal-counter">{goal.count}</div>
-      <h3 className="text-lg font-bold">{goal.name}</h3>
+      <div className="absolute top-2 right-2 bg-white/30 rounded-full h-8 w-8 flex items-center justify-center text-white font-bold">
+        {goal.count}
+      </div>
+      <h3 className="text-lg font-bold text-center">{goal.name}</h3>
       {goal.dueDate && (
-        <div className="goal-due-date">
+        <div className="text-xs mt-2 opacity-80 text-center px-1">
           Due: {formatDate(goal.dueDate)}
         </div>
       )}
       {goal.link && (
-        <div className="goal-link" onClick={handleStopPropagation}>
+        <div className="mt-2 text-center p-1 bg-white/20 rounded" onClick={handleStopPropagation}>
           <a 
             href={goal.link} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="goal-link-anchor"
+            className="text-white hover:underline"
           >
             Visit Resource
           </a>
@@ -107,11 +117,11 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
       )}
       
       <button 
-        className="edit-button" 
+        className="absolute bottom-2 right-2 p-1.5 rounded-full bg-white/30 hover:bg-white/50 transition-colors border border-white/50 shadow-sm" 
         onClick={handleEditClick}
         aria-label="Edit goal"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
