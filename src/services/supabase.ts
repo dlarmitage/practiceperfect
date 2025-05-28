@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Goal } from '../types';
+import type { Goal, Session } from '../types';
 import type { SortMethod } from '../context/GoalContext';
 
 // Initialize Supabase client
@@ -32,6 +32,22 @@ export const signOut = async () => {
     throw error;
   }
   return true;
+};
+
+/**
+ * Get the current authenticated user
+ */
+export const getCurrentUser = async () => {
+  return await supabase.auth.getUser();
+};
+
+/**
+ * Send password reset email
+ */
+export const resetPassword = async (email: string) => {
+  return await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
 };
 
 /**
@@ -123,54 +139,185 @@ export const updatePassword = async ({
 /**
  * Delete user account
  */
-export const deleteAccount = async ({ password }: { password: string }) => {
-  // First verify the user's password
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData?.user) {
-    throw new Error('User not authenticated');
-  }
-  
-  // Verify password by attempting to sign in
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: userData.user.email || '',
-    password
-  });
-  
-  if (signInError) {
-    console.error('Password verification failed:', signInError.message);
-    throw new Error('Password is incorrect');
-  }
-  
-  // Delete all user goals first
-  const { error: deleteGoalsError } = await supabase
-    .from('goals')
-    .delete()
-    .eq('user_id', userData.user.id);
-  
-  if (deleteGoalsError) {
-    console.error('Error deleting user goals:', deleteGoalsError);
-    throw deleteGoalsError;
-  }
-  
-  // Delete the user account
-  const { error } = await supabase.auth.admin.deleteUser(userData.user.id);
-  
-  if (error) {
-    console.error('Error deleting account:', error.message);
+export const deleteAccount = async (password: string) => {
+  try {
+    // Verify the password first
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: (await supabase.auth.getUser()).data.user?.email || '',
+      password
+    });
+
+    if (signInError) {
+      console.error('Password verification failed:', signInError);
+      throw new Error('Password verification failed');
+    }
+
+    // Delete all user goals first
+    const { error: goalsError } = await supabase
+      .from('goals')
+      .delete()
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '');
+
+    if (goalsError) {
+      console.error('Error deleting user goals:', goalsError);
+      throw goalsError;
+    }
+
+    // Delete the user account
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(
+      (await supabase.auth.getUser()).data.user?.id || ''
+    );
+
+    if (deleteError) {
+      console.error('Error deleting user account:', deleteError);
+      throw deleteError;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in deleteAccount:', error);
     throw error;
   }
-  
+};
+
+// Sessions CRUD operations
+
+/**
+ * Create a new session
+ */
+export const createSession = async (sessionData: Omit<Session, 'id' | 'created_at' | 'user_id'>) => {
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('sessions')
+    .insert({
+      ...sessionData,
+      user_id: user.data.user.id
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating session:', error);
+    throw error;
+  }
+
+  return data as Session;
+};
+
+/**
+ * Get all sessions for the authenticated user
+ */
+export const getSessions = async () => {
+  try {
+    console.log('Getting current user...');
+    const user = await supabase.auth.getUser();
+    console.log('User data:', user.data);
+    
+    if (!user.data.user) {
+      console.error('No authenticated user found');
+      throw new Error('User not authenticated');
+    }
+    
+    console.log('Querying sessions table for user:', user.data.user.id);
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', user.data.user.id)
+      .order('session_date', { ascending: false });
+    
+    if (error) {
+      console.error('Supabase error fetching sessions:', error);
+      throw error;
+    }
+    
+    console.log('Sessions retrieved:', data ? data.length : 0);
+    return data || [];
+  } catch (error) {
+    console.error('Exception in getSessions:', error);
+    return [];
+  }
+};
+
+/**
+ * Get all sessions for a specific goal
+ */
+export const getSessionsByGoal = async (goalId: string): Promise<Session[]> => {
+  try {
+    const user = await supabase.auth.getUser();
+    
+    if (!user.data.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', user.data.user.id)
+      .eq('goal_id', goalId)
+      .order('session_date', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching sessions by goal:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in getSessionsByGoal:', error);
+    return [];
+  }
+};
+
+/**
+ * Update a session
+ */
+export const updateSession = async (id: string, updates: Partial<Omit<Session, 'id' | 'user_id' | 'goal_id' | 'created_at'>>) => {
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { data, error } = await supabase
+    .from('sessions')
+    .update(updates)
+    .eq('id', id)
+    .eq('user_id', user.data.user.id) // Security check
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating session:', error);
+    throw error;
+  }
+
+  return data as Session;
+};
+
+/**
+ * Delete a session
+ */
+export const deleteSession = async (id: string) => {
+  const user = await supabase.auth.getUser();
+  if (!user.data.user) {
+    throw new Error('User not authenticated');
+  }
+
+  const { error } = await supabase
+    .from('sessions')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.data.user.id); // Security check
+
+  if (error) {
+    console.error('Error deleting session:', error);
+    throw error;
+  }
+
   return true;
-};
-
-export const getCurrentUser = async () => {
-  return await supabase.auth.getUser();
-};
-
-export const resetPassword = async (email: string) => {
-  return await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
 };
 
 // Goals CRUD operations

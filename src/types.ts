@@ -1,5 +1,19 @@
 // Define types for the application
 
+// Define the session type
+export interface Session {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  created_at: string;
+  session_date: string;
+  count: number;
+  notes?: string;
+  duration?: number;
+  mood?: number;
+  location?: string;
+}
+
 // Define the cadence type
 export type Cadence = 'hourly' | 'daily' | 'weekly' | 'monthly';
 

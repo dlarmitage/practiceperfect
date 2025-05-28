@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useGoals } from '../context/GoalContext';
+import { useSession } from '../context/SessionContext';
 import type { SortMethod } from '../context/GoalContext';
+import type { Goal } from '../types';
 import GoalButton from '../components/GoalButton';
 import GoalForm from '../components/GoalForm';
 import ConfirmationModal from '../components/ConfirmationModal';
 import PositionSelectModal from '../components/PositionSelectModal';
 import Avatar from '../components/Avatar';
 import { generateWelcomeMessage } from '../services/openai';
-import type { Goal } from '../types';
 
 /**
  * Home page component displaying the user's goals
@@ -29,6 +30,7 @@ const Home: React.FC = () => {
     setSortMethod,
     updateGoalOrder
   } = useGoals();
+  const { setActiveGoalId } = useSession();
   
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -533,6 +535,7 @@ const Home: React.FC = () => {
                     goal={goal}
                     onClick={() => handleGoalClick(goal.id)}
                     onEdit={() => handleGoalEdit(goal)}
+                    onStartSession={() => setActiveGoalId(goal.id)}
                   />
                 </div>
               </div>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { updateProfile, updateEmail, deleteAccount } from '../services/supabase';
 import ConfirmationModal from './ConfirmationModal';
 import PasswordChangeModal from './PasswordChangeModal';
@@ -11,7 +10,6 @@ interface ProfileModalProps {
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const { user, setUser } = useAuth();
-  const navigate = useNavigate();
   
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,6 +18,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [deleteConfirmPassword, setDeleteConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -81,19 +80,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   };
   
   const confirmDeleteAccount = async () => {
-    setIsLoading(true);
-    setError('');
-    
+    if (!deleteConfirmPassword) {
+      setDeleteError('Password is required');
+      return;
+    }
+
     try {
-      await deleteAccount({ password: deleteConfirmPassword });
+      setIsLoading(true);
+      await deleteAccount(deleteConfirmPassword);
       onClose();
-      navigate('/login');
-    } catch (err) {
-      setError('Failed to delete account. Please check your password and try again.');
-      console.error(err);
-      setShowDeleteConfirmation(false);
+      // Sign out will be handled by the auth context
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setDeleteError('Failed to delete account. Please check your password and try again.');
     } finally {
       setIsLoading(false);
+      setShowDeleteConfirmation(false);
     }
   };
   
@@ -201,6 +203,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         message={
           <>
             <p className="mb-4">Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data.</p>
+            {deleteError && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{deleteError}</div>}
             <div className="space-y-2">
               <label htmlFor="deleteConfirmPassword" className="block text-sm font-medium text-gray-700">Enter your password to confirm</label>
               <input

@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Goal, GoalStatus } from '../types';
 import { calculateGoalStatus, formatDate } from '../utils/goalUtils';
+import SessionTimer from './SessionTimer';
 
 interface GoalButtonProps {
   goal: Goal;
   onClick: () => void;
   onEdit: () => void;
+  onStartSession?: (goal: Goal) => void;
 }
 
 /**
@@ -15,11 +17,66 @@ interface GoalButtonProps {
  * @param onClick - Function to call when the button is clicked
  * @param onEdit - Function to call when the edit button is clicked
  */
-const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
-  const [clickTimer, setClickTimer] = React.useState<NodeJS.Timeout | null>(null);
-  const [isDoubleClick, setIsDoubleClick] = React.useState(false);
+const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartSession }) => {
+  const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isDoubleClick, setIsDoubleClick] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPress, setIsLongPress] = useState(false);
+  const [showSessionTimer, setShowSessionTimer] = useState(false);
+  
+  // Track if the pointer is down
+  const isPointerDown = useRef(false);
   
   const status: GoalStatus = calculateGoalStatus(goal);
+  
+  // Handle pointer down - start long press timer
+  const handlePointerDown = (_e: React.PointerEvent) => {
+    isPointerDown.current = true;
+    
+    // Start long press timer
+    const timer = setTimeout(() => {
+      if (isPointerDown.current) {
+        setIsLongPress(true);
+        if (onStartSession) {
+          // Start session on long press
+          setShowSessionTimer(true);
+        }
+      }
+    }, 800); // 800ms for long press
+    
+    setLongPressTimer(timer);
+  };
+  
+  // Handle pointer up - clear long press timer
+  const handlePointerUp = () => {
+    isPointerDown.current = false;
+    
+    // Clear long press timer
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    
+    // If it wasn't a long press, handle as a normal click
+    if (!isLongPress) {
+      handleClick();
+    }
+    
+    // Reset long press state after a short delay
+    setTimeout(() => {
+      setIsLongPress(false);
+    }, 300);
+  };
+  
+  // Handle pointer leave - clear long press timer
+  const handlePointerLeave = () => {
+    isPointerDown.current = false;
+    
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
   
   // Handle click with double-click detection
   const handleClick = () => {
@@ -41,8 +98,8 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
           // If we get here, it was a single click
           setClickTimer(null);
           
-          // Only increment if we're not in a double-click state
-          if (!isDoubleClick) {
+          // Only increment if we're not in a double-click state and not in long press
+          if (!isDoubleClick && !isLongPress) {
             onClick();
           }
         }, 250) // Wait 250ms to see if a second click comes
@@ -50,24 +107,29 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
     }
   };
   
-  // Handle touch end (for mobile)
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    // If this was a tap, trigger the click handler
-    if (!isDoubleClick) {
-      onClick();
-    }
-    
-    e.preventDefault(); // Prevent default to avoid double-tap zoom on mobile
+  // Handle session completion
+  const handleSessionComplete = () => {
+    setShowSessionTimer(false);
+    // Increment the goal count since a session was completed
+    onClick();
+  };
+  
+  // Handle session cancellation
+  const handleSessionCancel = () => {
+    setShowSessionTimer(false);
   };
   
   // Clean up timers on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (clickTimer) {
         clearTimeout(clickTimer);
       }
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
     };
-  }, [clickTimer]);
+  }, [clickTimer, longPressTimer]);
   
   // Handle link or edit button click - prevent event propagation to avoid triggering the goal button click
   const handleStopPropagation = (e: React.MouseEvent) => {
@@ -89,11 +151,14 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
   };
 
   return (
-    <div 
-      className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg`}
-      onClick={handleClick}
-      onTouchEnd={handleTouchEnd}
-    >
+    <>
+      <div 
+        className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg ${isLongPress ? 'scale-95 opacity-80' : ''}`}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onPointerCancel={handlePointerLeave}
+      >
       <div className="absolute top-2 right-2 bg-white/30 rounded-full h-8 w-8 flex items-center justify-center text-white font-bold">
         {goal.count}
       </div>
@@ -128,6 +193,16 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit }) => {
         </svg>
       </button>
     </div>
+      
+      {/* Session Timer Modal */}
+      {showSessionTimer && (
+        <SessionTimer 
+          goal={goal} 
+          onComplete={handleSessionComplete} 
+          onCancel={handleSessionCancel} 
+        />
+      )}
+    </>
   );
 };
 
