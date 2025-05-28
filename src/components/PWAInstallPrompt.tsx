@@ -109,7 +109,7 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onClose }) => {
                     <div className="flex items-center mt-2 mb-2">
                       <span className="mr-2">Click the install icon</span>
                       <img 
-                        src="/media/chrome_install.svg" 
+                        src="/icons/chrome_install.svg" 
                         alt="Chrome install icon" 
                         className="h-6 w-6" 
                         title="Chrome install icon"
