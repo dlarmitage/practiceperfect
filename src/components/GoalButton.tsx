@@ -153,7 +153,7 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartS
   return (
     <>
       <div 
-        className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg ${isLongPress ? 'scale-95 opacity-80' : ''}`}
+        className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg ${isLongPress ? 'scale-95 opacity-90 goal-glow' : ''}`}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
