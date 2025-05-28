@@ -37,12 +37,16 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartS
     const timer = setTimeout(() => {
       if (isPointerDown.current) {
         setIsLongPress(true);
-        if (onStartSession) {
-          // Start session on long press
-          setShowSessionTimer(true);
-        }
+        // Show glow effect for 1 second before showing the session timer
+        // This ensures the glow is visible on all devices
+        setTimeout(() => {
+          if (isPointerDown.current && onStartSession) {
+            // Start session on long press
+            setShowSessionTimer(true);
+          }
+        }, 1000);
       }
-    }, 800); // 800ms for long press
+    }, 500); // Reduced to 500ms for better responsiveness
     
     setLongPressTimer(timer);
   };
@@ -60,12 +64,15 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartS
     // If it wasn't a long press, handle as a normal click
     if (!isLongPress) {
       handleClick();
+    } else {
+      // If it was a long press, keep the glow effect visible for a moment
+      // This ensures users can see the glow effect even after releasing
     }
     
-    // Reset long press state after a short delay
+    // Reset long press state after a longer delay to ensure glow is visible
     setTimeout(() => {
       setIsLongPress(false);
-    }, 300);
+    }, 1000);
   };
   
   // Handle pointer leave - clear long press timer

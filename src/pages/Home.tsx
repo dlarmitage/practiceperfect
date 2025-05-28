@@ -471,11 +471,72 @@ const Home: React.FC = () => {
         {/* Goals grid */}
         {filteredGoals.length === 0 ? (
           <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
-            <p className="text-gray-600">
-              {goals.length === 0 
-                ? "You don't have any goals yet. Create your first goal to get started!" 
-                : "You don't have any active goals. Enable 'Show Inactive' to see your inactive goals."}
-            </p>
+            {goals.length === 0 ? (
+              <div className="space-y-4">
+                <svg className="w-16 h-16 mx-auto text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 className="text-xl font-semibold text-gray-800">Welcome to Practice Perfect!</h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  You don't have any goals yet. Click the "New Goal" button above to get started!
+                </p>
+                
+                <div className="mt-6 bg-blue-50 p-5 rounded-lg border border-blue-100 text-left max-w-lg mx-auto">
+                  <h4 className="font-medium text-blue-800 mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    How to use Practice Perfect:
+                  </h4>
+                  
+                  <ul className="text-sm text-gray-700 space-y-3">
+                    <li className="flex items-start">
+                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
+                        </svg>
+                      </div>
+                      <span><b>Quick tap</b> on a goal to quickly log that you practiced it</span>
+                    </li>
+                    
+                    <li className="flex items-start">
+                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                      </div>
+                      <span><b>Long press</b> on a goal to start a timed practice session with a glowing effect</span>
+                    </li>
+                    
+                    <li className="flex items-start">
+                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                      </div>
+                      <span>Sessions track your practice duration, mood, and notes for better insights</span>
+                    </li>
+                    
+                    <li className="flex items-start">
+                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                      </div>
+                      <span>View your practice history and analytics in the Sessions and Analysis tabs</span>
+                    </li>
+                  </ul>
+                  
+                  <div className="mt-4 pt-3 border-t border-blue-100 text-center">
+                    <span className="text-blue-700 text-sm font-medium">Start by creating your first goal!</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-600">
+                You don't have any active goals. Enable 'Show Inactive' to see your inactive goals.
+              </p>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
