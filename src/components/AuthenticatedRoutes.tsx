@@ -36,13 +36,13 @@ const AuthenticatedRoutes: React.FC = () => {
 
   return (
     <>
-      <header className="bg-white shadow-sm">
+      <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <img src="/Logo.webp" alt="PracticePerfect Logo" className="h-10" />
           <Avatar size="md" />
         </div>
       </header>
-      <div className="flex-grow">
+      <div className="flex-grow pb-16">
         {renderComponent()}
       </div>
       <BottomNavigation />

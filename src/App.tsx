@@ -10,7 +10,6 @@ import LandingPage from './pages/LandingPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import TailwindDemo from './pages/TailwindDemo';
-import { isRunningAsPWA } from './utils/deviceDetection';
 
 // PWA registration will be implemented after setting up the proper dependencies
 
@@ -19,7 +18,6 @@ import AuthenticatedRoutes from './components/AuthenticatedRoutes';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
     // Check for online/offline status
@@ -29,8 +27,8 @@ function App() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Check if app is running as PWA
-    setIsPWA(isRunningAsPWA());
+    // We used to check if app is running as PWA here
+    // but we no longer need this for routing purposes
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -51,7 +49,7 @@ function App() {
             <div className="flex flex-col min-h-screen">
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={isPWA ? <Navigate to="/home" /> : <LandingPage />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />

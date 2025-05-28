@@ -152,7 +152,7 @@ const Sessions: React.FC = () => {
             <button
               onClick={() => setShowSessionTimer(true)}
               disabled={!selectedGoal}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed h-full"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 active:scale-95 transition-all duration-150 shadow active:shadow-inner disabled:opacity-50 disabled:cursor-not-allowed h-full select-none"
             >
               New Session
             </button>
@@ -168,7 +168,7 @@ const Sessions: React.FC = () => {
               <h2 className="text-xl font-semibold">New Session: {selectedGoal.name}</h2>
               <button 
                 onClick={() => setShowSessionTimer(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 active:text-gray-900 active:scale-90 transition-all duration-150"
               >
                 &times;
               </button>
@@ -214,7 +214,7 @@ const Sessions: React.FC = () => {
               </button>
               <button 
                 onClick={confirmDeleteSession}
-                className="btn btn-danger text-sm px-3 py-1 bg-red-600 text-white hover:bg-red-700"
+                className="btn btn-danger text-sm px-3 py-1 bg-red-600 text-white hover:bg-red-700 active:bg-red-800 active:scale-95 transition-all duration-150 shadow active:shadow-inner select-none"
               >
                 Delete
               </button>

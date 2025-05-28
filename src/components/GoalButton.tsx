@@ -30,7 +30,10 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartS
   const status: GoalStatus = calculateGoalStatus(goal);
   
   // Handle pointer down - start long press timer
-  const handlePointerDown = (_e: React.PointerEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Prevent default behavior (text selection) on mobile
+    e.preventDefault();
+    
     isPointerDown.current = true;
     
     // Start long press timer
@@ -160,7 +163,7 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartS
   return (
     <>
       <div 
-        className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg ${isLongPress ? 'scale-95 opacity-90 goal-glow' : ''}`}
+        className={`relative flex flex-col items-center justify-center p-4 rounded-lg shadow-md transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 ${statusColors[status]} hover:translate-y-[-2px] hover:shadow-lg active:translate-y-[1px] active:shadow-inner active:scale-[0.98] select-none touch-none ${isLongPress ? 'scale-95 opacity-90 goal-glow' : ''}`}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
@@ -189,7 +192,7 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onEdit, onStartS
       )}
       
       <button 
-        className="absolute bottom-2 right-2 p-1.5 rounded-full bg-white/30 hover:bg-white/50 transition-colors border border-white/50 shadow-sm" 
+        className="absolute bottom-2 right-2 p-1.5 rounded-full bg-white/30 hover:bg-white/50 active:bg-white/60 active:scale-90 transition-all duration-150 border border-white/50 shadow-sm active:shadow-inner" 
         onClick={handleEditClick}
         aria-label="Edit goal"
       >
