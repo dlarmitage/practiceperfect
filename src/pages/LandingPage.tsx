@@ -6,6 +6,7 @@ import HeroSlider from '../components/HeroSlider';
  * Landing page component for Practice Perfect
  */
 const LandingPage: React.FC = () => {
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Navigation */}
@@ -28,7 +29,7 @@ const LandingPage: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="relative">
           {/* Hero Slider */}
           <HeroSlider interval={7000} />
@@ -57,26 +58,10 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
-        {/* App Screenshot */}
-        <div className="mt-16 relative">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-blue-600 bg-opacity-10 rounded-3xl w-full h-full max-w-4xl mx-auto"></div>
-          </div>
-          <img 
-            src="/app-screenshot.png" 
-            alt="Practice Perfect App Screenshot" 
-            className="relative rounded-xl shadow-xl mx-auto max-w-4xl"
-            onError={(e) => {
-              // If image doesn't exist, use a placeholder
-              e.currentTarget.src = 'https://via.placeholder.com/800x450?text=Practice+Perfect+App';
-            }}
-          />
-        </div>
       </div>
 
       {/* Features Section */}
-      <div id="features" className="py-16 bg-white">
+      <div id="features" className="pt-8 pb-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900">Features designed for effective practice</h2>
