@@ -16,6 +16,8 @@ export const generateWelcomePrompt = (
 ): string => {
   return `
     Generate an encouraging and motivational welcome message for a user of a practice tracking app.
+    The term 'practice' can apply to anything; exercise, diet, preparing for a speech, learning new music.
+    The goal of the app to help people track their progress towards a goal, and to develop a new beneficial habit.
     
     User information:
     ${firstName ? `- First name: ${firstName}` : ''}
