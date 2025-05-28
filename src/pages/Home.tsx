@@ -505,7 +505,7 @@ const Home: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                       </div>
-                      <span><b>Long press</b> on a goal to start a timed practice session with a glowing effect</span>
+                      <span><b>Long press</b> on a goal to start a timed practice session</span>
                     </li>
                     
                     <li className="flex items-start">
