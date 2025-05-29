@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
+    "canvas-confetti": "^1.9.3",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "openai": "^4.103.0",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@tailwindcss/forms": "^0.5.7",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vite-pwa/assets-generator": "^1.0.0",

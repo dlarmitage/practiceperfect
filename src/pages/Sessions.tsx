@@ -54,6 +54,9 @@ const Sessions: React.FC = () => {
     }
   }, [goals, activeGoalId, setActiveGoalId]);
   
+  // Track if initial data has been loaded
+  const [initialDataLoaded, setInitialDataLoaded] = useState<boolean>(false);
+  
   // Log when sessions change
   useEffect(() => {
     console.log('Sessions updated:', { 
@@ -61,7 +64,12 @@ const Sessions: React.FC = () => {
       selectedGoalName: selectedGoal?.name,
       loading: isLoading
     });
-  }, [sessions, selectedGoal, isLoading]);
+    
+    // Mark data as loaded once we have sessions or explicitly know there are none
+    if (!initialDataLoaded && !isLoading) {
+      setInitialDataLoaded(true);
+    }
+  }, [sessions, selectedGoal, isLoading, initialDataLoaded]);
 
   const handleGoalChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const goalId = e.target.value;
@@ -223,11 +231,11 @@ const Sessions: React.FC = () => {
         </div>
       )}
       
-      {isLoading ? (
+      {isLoading && !initialDataLoaded ? (
         <div className="flex justify-center py-8">
           <p className="text-gray-500">Loading sessions...</p>
         </div>
-      ) : !isLoading && sessions.length === 0 ? (
+      ) : sessions.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No practice sessions found for this goal.</p>
           <p className="text-sm text-gray-500 mb-4">Use the "New Session" button above to start tracking your practice.</p>

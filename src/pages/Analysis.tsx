@@ -12,9 +12,17 @@ import {
 type TimePeriod = '7days' | '30days' | '90days' | 'all';
 
 const Analysis: React.FC = () => {
-  const { sessions } = useSession();
+  const { sessions, activeGoalId, setActiveGoalId } = useSession();
   const { goals } = useGoals();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('30days');
+  
+  // Reset activeGoalId when entering Analytics to ensure we see all sessions
+  React.useEffect(() => {
+    // Only reset if there's an active goal ID
+    if (activeGoalId) {
+      setActiveGoalId(null);
+    }
+  }, [activeGoalId, setActiveGoalId]);
   
   // Filter sessions based on selected time period
   const filteredSessions = useMemo(() => {
@@ -33,6 +41,19 @@ const Analysis: React.FC = () => {
   const totalSessions = filteredSessions.length;
   const totalDuration = filteredSessions.reduce((total, session) => total + (session.duration || 0), 0);
   const averageDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
+  
+  // Find max duration for dynamic axis scaling
+  const maxDuration = useMemo(() => {
+    if (filteredSessions.length === 0) return 0;
+    return Math.max(...filteredSessions.map(session => session.duration || 0));
+  }, [filteredSessions]);
+  
+  // Determine appropriate duration unit based on max duration
+  const durationUnit = useMemo(() => {
+    if (maxDuration < 60) return 'seconds';
+    if (maxDuration < 3600) return 'minutes';
+    return 'hours';
+  }, [maxDuration]);
   
   // Format duration in minutes and seconds
   const formatDuration = (seconds: number): string => {
@@ -189,37 +210,50 @@ const Analysis: React.FC = () => {
         <>
           {/* Practice Trend Chart */}
           <div className="bg-white rounded-lg shadow p-4 border border-gray-200 mb-8">
-            <h2 className="text-lg font-semibold mb-4">Practice Trend</h2>
+            <h2 className="text-lg font-semibold mb-4">Practice Trends (all sessions)</h2>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={practiceByDayData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis 
-                    dataKey="dateStr" 
-                    tick={{ fontSize: 12 }}
-                    interval={timePeriod === '7days' ? 0 : 'preserveStartEnd'}
+                  <XAxis dataKey="dateStr" tick={{ fontSize: 12 }} />
+                  <YAxis 
+                    yAxisId="left" 
+                    stroke="#3b82f6" 
                   />
                   <YAxis 
-                    yAxisId="left"
-                    orientation="left"
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `${value}`}
-                    name="Sessions"
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `${Math.round(value / 60)}m`}
-                    name="Duration"
+                    yAxisId="right" 
+                    orientation="right" 
+                    stroke="#10b981"
+                    domain={[0, 'auto']} 
+                    tickFormatter={(value) => {
+                      if (value === 0) return '0';
+                      
+                      // Format based on the appropriate unit
+                      if (durationUnit === 'seconds') {
+                        return `${value}s`;
+                      } else if (durationUnit === 'minutes') {
+                        return `${Math.round(value / 60)}m`;
+                      } else {
+                        return `${(value / 3600).toFixed(1)}h`;
+                      }
+                    }}
                   />
                   <Tooltip 
                     formatter={(value, name) => {
-                      if (name === 'Sessions') return value;
-                      if (name === 'Duration') return formatLongDuration(Number(value));
+                      if (name === 'duration') {
+                        const numValue = Number(value);
+                        if (durationUnit === 'seconds') {
+                          return `${numValue} seconds`;
+                        } else if (durationUnit === 'minutes') {
+                          return `${Math.floor(numValue / 60)}m ${numValue % 60}s`;
+                        } else {
+                          const hours = Math.floor(numValue / 3600);
+                          const minutes = Math.floor((numValue % 3600) / 60);
+                          return `${hours}h ${minutes}m`;
+                        }
+                      }
                       return value;
                     }}
-                    labelFormatter={(label) => `Date: ${label}`}
                   />
                   <Legend />
                   <Line 

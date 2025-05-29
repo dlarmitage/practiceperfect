@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Goal } from '../types';
 import { useSession } from '../context/SessionContext';
+import { useGoals } from '../context/GoalContext';
 
 interface SessionCompletionFormProps {
   goal: Goal;
@@ -19,13 +20,25 @@ const SessionCompletionForm: React.FC<SessionCompletionFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
   const { createNewSession } = useSession();
+  const { incrementGoalCount } = useGoals();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
-      await createNewSession({
+      console.log('Submitting session with data:', {
+        goal_id: goal.id,
+        session_date: new Date().toISOString(),
+        count: 1,
+        duration: sessionDuration,
+        mood: mood,
+        notes: notes,
+        location: location
+      });
+      
+      // Create the new session
+      const newSession = await createNewSession({
         goal_id: goal.id,
         session_date: new Date().toISOString(), // Save the full ISO timestamp with time
         count: 1,
@@ -35,9 +48,16 @@ const SessionCompletionForm: React.FC<SessionCompletionFormProps> = ({
         location: location || undefined
       });
       
+      console.log('Session created successfully:', newSession);
+      
+      // Increment the goal count
+      await incrementGoalCount(goal.id);
+      
+      // Close the form after successful submission
       onClose();
     } catch (error) {
       console.error('Error saving session:', error);
+      alert('There was an error saving your session. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -121,6 +141,10 @@ const SessionCompletionForm: React.FC<SessionCompletionFormProps> = ({
               type="submit"
               className="btn btn-primary text-sm px-3 py-1"
               disabled={isSubmitting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleSubmit(e);
+              }}
             >
               {isSubmitting ? 'Saving...' : 'Save Session'}
             </button>

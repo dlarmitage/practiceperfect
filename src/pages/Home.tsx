@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useGoals } from '../context/GoalContext';
 import { useSession } from '../context/SessionContext';
-import type { SortMethod } from '../context/GoalContext';
+// We don't need to import SortMethod since we're using it directly from the context
 import type { Goal } from '../types';
 import GoalButton from '../components/GoalButton';
 import GoalForm from '../components/GoalForm';
@@ -24,6 +24,7 @@ const Home: React.FC = () => {
     createGoal, 
     updateGoal, 
     incrementGoalCount, 
+    decrementGoalCount,
     deleteGoal,
     showInactive,
     setShowInactive,
@@ -123,14 +124,29 @@ const Home: React.FC = () => {
 
     if (!goalsLoading && user) {
       fetchWelcomeMessage();
+      
+      // Mark initial data as loaded once we've fetched goals
+      if (!initialDataLoaded) {
+        setInitialDataLoaded(true);
+      }
     }
   }, [goals, goalsLoading, user]);
+
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
   const handleGoalClick = async (goalId: string) => {
     try {
       await incrementGoalCount(goalId);
     } catch (error) {
       console.error('Error incrementing goal count:', error);
+    }
+  };
+  
+  const handleGoalDecrement = async (goalId: string) => {
+    try {
+      await decrementGoalCount(goalId);
+    } catch (error) {
+      console.error('Error decrementing goal count:', error);
     }
   };
 
@@ -262,7 +278,10 @@ const Home: React.FC = () => {
   
   // Handle drag start for custom sorting
   const handleDragStart = (goal: Goal) => {
-    if (sortMethod !== 'custom') return;
+    // If not already in custom sort mode, switch to it
+    if (sortMethod !== 'custom') {
+      setSortMethod('custom');
+    }
     isDragging.current = true;
     setDraggedGoal(goal);
     // Set a timestamp when drag starts
@@ -271,7 +290,10 @@ const Home: React.FC = () => {
   
   // Handle touch start for mobile drag and drop
   const handleTouchStart = (e: React.TouchEvent, goal: Goal) => {
-    if (sortMethod !== 'custom') return;
+    // If not already in custom sort mode, switch to it
+    if (sortMethod !== 'custom') {
+      setSortMethod('custom');
+    }
     
     // Record the starting position
     touchStartY.current = e.touches[0].clientY;
@@ -283,7 +305,12 @@ const Home: React.FC = () => {
   
   // Handle touch move for mobile drag and drop
   const handleTouchMove = (e: React.TouchEvent, goal: Goal) => {
-    if (sortMethod !== 'custom' || !touchedGoal.current) return;
+    if (!touchedGoal.current) return;
+    
+    // If not already in custom sort mode, switch to it
+    if (sortMethod !== 'custom') {
+      setSortMethod('custom');
+    }
     
     const touchY = e.touches[0].clientY;
     const touchX = e.touches[0].clientX;
@@ -310,7 +337,7 @@ const Home: React.FC = () => {
   
   // Handle touch end for mobile drag and drop
   const handleTouchEnd = async (e: React.TouchEvent, targetGoal: Goal) => {
-    if (sortMethod !== 'custom' || !touchedGoal.current) return;
+    if (!touchedGoal.current) return;
     
     // Remove the dragging class from the body
     document.body.classList.remove('dragging');
@@ -373,14 +400,25 @@ const Home: React.FC = () => {
   // Handle drag over for custom sorting
   const handleDragOver = (e: React.DragEvent, goal: Goal) => {
     e.preventDefault();
-    if (sortMethod !== 'custom' || !draggedGoal || draggedGoal.id === goal.id) return;
+    if (!draggedGoal || draggedGoal.id === goal.id) return;
+    
+    // If not already in custom sort mode, switch to it
+    if (sortMethod !== 'custom') {
+      setSortMethod('custom');
+    }
+    
     setDragOverGoal(goal);
   };
   
   // Handle drop for custom sorting
   const handleDrop = async (e: React.DragEvent, targetGoal: Goal) => {
     e.preventDefault();
-    if (sortMethod !== 'custom' || !draggedGoal || draggedGoal.id === targetGoal.id) return;
+    if (!draggedGoal || draggedGoal.id === targetGoal.id) return;
+    
+    // If not already in custom sort mode, switch to it
+    if (sortMethod !== 'custom') {
+      setSortMethod('custom');
+    }
     
     // Prevent multiple reordering operations at once
     if (isReordering.current) return;
@@ -439,11 +477,21 @@ const Home: React.FC = () => {
 
   // Remove duplicate declarations
 
-  if (authLoading || goalsLoading || isLoading) {
+  // Skip loading indicator completely - just render the content
+  // This ensures no loading indicator is shown when switching tabs
+  // We'll still set initialDataLoaded for consistency
+  useEffect(() => {
+    if (goalsLoading === false) {
+      setInitialDataLoaded(true);
+    }
+  }, [goalsLoading]);
+  
+  // Only show loading during initial authentication
+  if (authLoading && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="container mx-auto p-4 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-3 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -473,9 +521,9 @@ const Home: React.FC = () => {
         
         {/* Controls - only show when there are goals */}
         {goals.length > 0 && (
-          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <div className="flex justify-between items-center mb-6 space-x-2 overflow-x-auto">
             {/* Left side controls */}
-            <div className="flex items-center">
+            <div className="flex items-center flex-shrink-0">
               <input
                 type="checkbox"
                 id="show-inactive"
@@ -488,30 +536,51 @@ const Home: React.FC = () => {
               </label>
             </div>
             
-            {/* Right side controls */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center">
-                <span className="mr-2 text-sm text-gray-700">Sort by:</span>
-                <select
-                  className="form-select text-sm pr-8"
-                  value={sortMethod}
-                  onChange={(e) => setSortMethod(e.target.value as SortMethod)}
-                  aria-label="Sort goals by"
-                >
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="custom">Custom</option>
-                </select>
+            {/* Right side controls grouped together */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
+              {/* Mobile-friendly sort toggle buttons */}
+              <div className="flex items-center flex-shrink-0">
+                <div className="flex border border-gray-300 rounded-md overflow-hidden shadow-sm">
+                  <button
+                    type="button"
+                    className={`px-2 py-1 text-xs sm:text-sm ${sortMethod === 'newest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => setSortMethod('newest')}
+                    aria-label="Sort by newest"
+                  >
+                    Newest
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-2 py-1 text-xs sm:text-sm border-l border-r border-gray-300 ${sortMethod === 'oldest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => setSortMethod('oldest')}
+                    aria-label="Sort by oldest"
+                  >
+                    Oldest
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-2 py-1 text-xs sm:text-sm ${sortMethod === 'custom' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => setSortMethod('custom')}
+                    aria-label="Sort by custom order"
+                  >
+                    Custom
+                  </button>
+                </div>
               </div>
               
+              {/* Add Goal button */}
               <button
                 onClick={handleCreateGoal}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 active:bg-blue-800 active:scale-95 transition-all"
+                aria-label="Add Goal"
               >
-                <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                {/* Plus icon always visible */}
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                 </svg>
-                Add Goal
+                
+                {/* Text only visible on larger screens */}
+                <span className="hidden sm:inline-block ml-2">Add Goal</span>
               </button>
             </div>
           </div>
@@ -605,11 +674,11 @@ const Home: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-6 sm:px-0">
             {filteredGoals.map((goal) => (
               <div 
                 key={goal.id}
-                className={`relative ${dragOverGoal?.id === goal.id ? 'border-2 border-blue-400 rounded-lg' : ''} ${sortMethod === 'custom' ? 'cursor-move' : ''} ${draggedGoal?.id === goal.id ? 'opacity-50 transform scale-105' : ''}`}
+                className={`relative ${dragOverGoal?.id === goal.id ? 'border-2 border-blue-400 rounded-lg' : ''} ${draggedGoal?.id === goal.id ? 'opacity-50 transform scale-105' : ''}`}
                 draggable={sortMethod === 'custom'}
                 onDragStart={() => handleDragStart(goal)}
                 onDragOver={(e) => handleDragOver(e, goal)}
@@ -618,33 +687,7 @@ const Home: React.FC = () => {
                 onTouchMove={(e) => handleTouchMove(e, goal)}
                 onTouchEnd={(e) => handleTouchEnd(e, goal)}
               >
-                {sortMethod === 'custom' && (
-                  <div 
-                    className="absolute top-2 left-2 z-10 w-8 h-8 flex items-center justify-center bg-white/80 rounded-full shadow-sm cursor-move hover:bg-gray-100 transition-colors"
-                    onClick={() => {
-                      if (isMobile && sortMethod === 'custom') {
-                        // On mobile, show position selection modal
-                        const position = filteredGoals.findIndex(g => g.id === goal.id) + 1;
-                        setSelectedGoal(goal);
-                        setCurrentPosition(position);
-                        setShowPositionModal(true);
-                      }
-                    }}
-                    onTouchStart={(e) => {
-                      if (!isMobile && sortMethod === 'custom') {
-                        // On desktop, use drag and drop
-                        e.stopPropagation();
-                        handleTouchStart(e, goal);
-                      }
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
-                      <line x1="4" y1="6" x2="20" y2="6"></line>
-                      <line x1="4" y1="12" x2="20" y2="12"></line>
-                      <line x1="4" y1="18" x2="20" y2="18"></line>
-                    </svg>
-                  </div>
-                )}
+                {/* Drag handle removed - now using the one in GoalButton */}
                 <div 
                   onClick={(e) => {
                     // Prevent click events during or immediately after dragging
@@ -661,6 +704,7 @@ const Home: React.FC = () => {
                   <GoalButton
                     goal={goal}
                     onClick={() => handleGoalClick(goal.id)}
+                    onDecrement={() => handleGoalDecrement(goal.id)}
                     onEdit={() => handleGoalEdit(goal)}
                     onStartSession={() => setActiveGoalId(goal.id)}
                   />

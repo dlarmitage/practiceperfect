@@ -36,23 +36,34 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const [initialized, setInitialized] = useState<boolean>(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState<boolean>(false);
+  
+  // Function to fetch sessions with control over loading indicator
+  const fetchSessionsWithLoading = async (showLoadingIndicator = true, fetchFunction: () => Promise<Session[]>) => {
+    if (showLoadingIndicator) {
+      setIsLoading(true);
+    }
+    setError(null);
+    
+    try {
+      const data = await fetchFunction();
+      setSessions(data || []);
+      setInitialDataLoaded(true);
+    } catch (err) {
+      console.error('Error fetching sessions:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
+      setSessions([]);
+    } finally {
+      setIsLoading(false);
+      setInitialized(true);
+    }
+  };
   
   // Initial data load when component mounts
   useEffect(() => {
     const initialLoad = async () => {
       console.log('SessionContext: Initial data load');
-      setIsLoading(true);
-      try {
-        const data = await getSessions();
-        console.log('SessionContext: Initial sessions loaded:', data?.length || 0);
-        setSessions(data || []);
-      } catch (err) {
-        console.error('SessionContext: Error during initial load:', err);
-        setError(err instanceof Error ? err : new Error('Failed to load initial sessions'));
-      } finally {
-        setIsLoading(false);
-        setInitialized(true);
-      }
+      await fetchSessionsWithLoading(true, getSessions);
     };
     
     initialLoad();
@@ -66,18 +77,22 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     console.log('SessionContext: activeGoalId changed to:', activeGoalId);
     
     if (activeGoalId) {
-      fetchSessionsByGoal(activeGoalId);
+      // Don't show loading indicator when switching goals after initial load
+      fetchSessionsByGoal(activeGoalId, !initialDataLoaded);
     } else {
-      fetchAllSessions();
+      fetchAllSessions(!initialDataLoaded);
     }
-  }, [activeGoalId, initialized]);
+  }, [activeGoalId, initialized, initialDataLoaded]);
 
-  const fetchSessionsByGoal = async (goalId: string) => {
-    setIsLoading(true);
+  const fetchSessionsByGoal = async (goalId: string, showLoadingIndicator = true) => {
+    if (showLoadingIndicator) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const data = await getSessionsByGoal(goalId);
       setSessions(data || []);
+      setInitialDataLoaded(true);
     } catch (err) {
       console.error('Error fetching sessions by goal:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
@@ -87,14 +102,17 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
   };
 
-  const fetchAllSessions = async () => {
-    setIsLoading(true);
+  const fetchAllSessions = async (showLoadingIndicator = true) => {
+    if (showLoadingIndicator) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       console.log('Fetching all sessions...');
       const data = await getSessions();
       console.log('Sessions data received:', data);
       setSessions(data || []);
+      setInitialDataLoaded(true);
     } catch (err) {
       console.error('Error fetching all sessions:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
@@ -105,6 +123,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   };
 
   const createNewSession = async (sessionData: Omit<Session, 'id' | 'created_at' | 'user_id'>) => {
+    // Always show loading when creating a new session since it's a user action
     setIsLoading(true);
     setError(null);
     try {

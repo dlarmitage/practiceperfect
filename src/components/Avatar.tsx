@@ -36,18 +36,9 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
     }
   };
   
-  // Generate a consistent background color based on the user's ID
+  // Use a medium grey for the avatar background
   const getBackgroundColor = () => {
-    if (!user?.id) return '#3b82f6'; // Default blue
-    
-    // Simple hash function to generate a color
-    const hash = user.id.split('').reduce((acc: number, char: string) => {
-      return char.charCodeAt(0) + ((acc << 5) - acc);
-    }, 0);
-    
-    // Convert to HSL color with good saturation and lightness
-    const h = Math.abs(hash % 360);
-    return `hsl(${h}, 70%, 60%)`;
+    return '#6B7280'; // Medium grey (Tailwind gray-500)
   };
   
   // Determine size class based on the size prop
