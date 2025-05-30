@@ -15,6 +15,7 @@ const Analysis: React.FC = () => {
   const { sessions, activeGoalId, setActiveGoalId } = useSession();
   const { goals } = useGoals();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('30days');
+  const [includeCompleted, setIncludeCompleted] = useState<boolean>(false);
   
   // Reset activeGoalId when entering Analytics to ensure we see all sessions
   React.useEffect(() => {
@@ -72,9 +73,21 @@ const Analysis: React.FC = () => {
     return `${minutes}m`;
   };
 
-  // Group sessions by goal
+  // Group sessions by goal, adding completed goals only when checkbox is checked
   const sessionsByGoal = useMemo(() => {
-    return goals.map((goal: Goal) => {
+    // Filter goals based on their status
+    const filteredGoals = goals.filter(goal => {
+      // If goal is completed, only include it when the checkbox is checked
+      if (goal.completed) {
+        return includeCompleted;
+      }
+      
+      // Always include active goals (non-completed goals)
+      // This includes past due goals, which are still active but past their due date
+      return true;
+    });
+      
+    return filteredGoals.map((goal: Goal) => {
       const goalSessions = filteredSessions.filter(session => session.goal_id === goal.id);
       return {
         goal,
@@ -85,8 +98,8 @@ const Analysis: React.FC = () => {
           : 0,
         sessions: goalSessions
       };
-    }).filter((item: {sessionCount: number}) => item.sessionCount > 0);
-  }, [filteredSessions, goals]);
+    }); // Removed filter to include all goals, even those without sessions
+  }, [filteredSessions, goals, includeCompleted]);
   
   // Prepare data for practice trend chart (sessions per day)
   const practiceByDayData = useMemo(() => {
@@ -119,33 +132,45 @@ const Analysis: React.FC = () => {
     return daysArray;
   }, [filteredSessions, timePeriod]);
   
-  // Prepare data for goal distribution pie chart
+  // Generate a color based on goal status and completion
+  const getColorForGoal = (goal: Goal): string => {
+    if (goal.completed) {
+      return 'rgb(59, 130, 246)'; // Blue for completed goals
+    }
+    
+    const now = new Date();
+    const dueDate = goal.dueDate ? parseISO(goal.dueDate) : null;
+    const isActive = goal.isActive;
+    const progress = goal.count / goal.targetCount;
+
+    if (!isActive) {
+      return 'rgb(156, 163, 175)'; // Gray for inactive goals
+    }
+
+    if (dueDate && dueDate < now) {
+      return 'rgb(239, 68, 68)'; // Red for overdue goals
+    }
+
+    if (progress >= 1) {
+      return 'rgb(34, 197, 94)'; // Green for goals meeting target
+    }
+
+    return 'rgb(249, 115, 22)'; // Orange for active goals in progress
+  };
+  
+  // Prepare data for goal distribution pie chart using goal count instead of session duration
   const goalDistributionData = useMemo(() => {
-    return sessionsByGoal.map(({ goal, totalDuration }) => ({
+    return sessionsByGoal.map(({ goal }) => ({
       name: goal.name,
-      value: totalDuration,
-      color: getColorForGoal(goal.id)
+      value: goal.count, // Using goal count instead of session duration
+      color: getColorForGoal(goal)
     }));
   }, [sessionsByGoal]);
-  
-  // Generate a consistent color based on goal ID
-  function getColorForGoal(goalId: string): string {
-    // Simple hash function to generate a color
-    const hash = goalId.split('').reduce((acc, char) => {
-      return char.charCodeAt(0) + ((acc << 5) - acc);
-    }, 0);
-    
-    // Generate a hue between 0 and 360 based on the hash
-    const hue = Math.abs(hash % 360);
-    
-    // Use HSL to generate colors with consistent saturation and lightness
-    return `hsl(${hue}, 70%, 50%)`;
-  }
 
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 items-center">
           <button 
             onClick={() => setTimePeriod('7days')}
             className={`px-3 py-1 text-sm rounded-md ${timePeriod === '7days' 
@@ -178,6 +203,19 @@ const Analysis: React.FC = () => {
           >
             All Time
           </button>
+          
+          <div className="flex items-center ml-4 space-x-2">
+            <input
+              type="checkbox"
+              id="includeCompleted"
+              checked={includeCompleted}
+              onChange={(e) => setIncludeCompleted(e.target.checked)}
+              className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <label htmlFor="includeCompleted" className="text-sm text-gray-700">
+              Include Completed Goals
+            </label>
+          </div>
         </div>
       </div>
       
@@ -284,7 +322,7 @@ const Analysis: React.FC = () => {
           {/* Goal Distribution Chart */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-              <h2 className="text-lg font-semibold mb-4">Practice Distribution</h2>
+              <h2 className="text-lg font-semibold mb-4">Practice Count</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -297,13 +335,13 @@ const Analysis: React.FC = () => {
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, value }) => `${name}: ${value}`}
                     >
                       {goalDistributionData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => formatLongDuration(Number(value))} />
+                    <Tooltip formatter={(value) => `${value} practices`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -318,7 +356,7 @@ const Analysis: React.FC = () => {
                     name: item.goal.name,
                     duration: item.totalDuration,
                     sessions: item.sessionCount,
-                    color: getColorForGoal(item.goal.id)
+                    color: getColorForGoal(item.goal)
                   }))}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
@@ -331,7 +369,7 @@ const Analysis: React.FC = () => {
                     />
                     <Bar dataKey="duration" name="Duration" fill="#3b82f6">
                       {sessionsByGoal.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={getColorForGoal(entry.goal.id)} />
+                        <Cell key={`cell-${index}`} fill={getColorForGoal(entry.goal)} />
                       ))}
                     </Bar>
                   </BarChart>
