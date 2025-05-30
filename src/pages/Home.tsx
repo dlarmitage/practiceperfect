@@ -37,12 +37,12 @@ const Home: React.FC = () => {
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Removed unused isLoading state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [draggedGoal, setDraggedGoal] = useState<Goal | null>(null);
   const [dragOverGoal, setDragOverGoal] = useState<Goal | null>(null);
   const [showPositionModal, setShowPositionModal] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState(0);
+  const [currentPosition] = useState(0); // setCurrentPosition is unused
   const [isPWA, setIsPWA] = useState(false);
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   
@@ -119,7 +119,7 @@ const Home: React.FC = () => {
           : 'Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.';
         setWelcomeMessage(defaultMessage);
       }
-      setIsLoading(false);
+      // setIsLoading removed (was unused)
     };
 
     if (!goalsLoading && user) {
@@ -192,8 +192,8 @@ const Home: React.FC = () => {
         // but we'll force a refresh of the goals list just to be sure
         setTimeout(() => {
           // This will trigger a re-render with the updated goals
-          setIsLoading(true);
-          setIsLoading(false);
+          // setIsLoading removed (was unused)
+          // setIsLoading removed (was unused)
         }, 100);
       }
       
@@ -222,7 +222,7 @@ const Home: React.FC = () => {
       try {
         console.log(`Home: Attempting to delete goal: ${selectedGoal.name} (${selectedGoal.id})`);
         // Set loading state while deletion is in progress
-        setIsLoading(true);
+        // setIsLoading removed (was unused)
         
         const result = await deleteGoal(selectedGoal.id);
         console.log(`Home: Delete goal result:`, result);
@@ -232,11 +232,11 @@ const Home: React.FC = () => {
         setSelectedGoal(null);
         
         // Ensure UI is refreshed
-        setIsLoading(false);
+        // setIsLoading removed (was unused)
       } catch (error) {
         console.error('Home: Error deleting goal:', error);
         // Show error in UI if needed
-        setIsLoading(false);
+        // setIsLoading removed (was unused)
         
         // Even if there's an error, close the modal
         setShowDeleteConfirmation(false);
@@ -262,10 +262,10 @@ const Home: React.FC = () => {
   const touchedGoal = useRef<Goal | null>(null);
   
   // Check if device is mobile
-  const [isMobile, setIsMobile] = useState(false);
+  // Removed unused isMobile state
   useEffect(() => {
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // setIsMobile removed (was unused)
     };
     
     checkIfMobile();
@@ -288,20 +288,7 @@ const Home: React.FC = () => {
     lastDragEndTime.current = Date.now();
   };
   
-  // Handle touch start for mobile drag and drop
-  const handleTouchStart = (e: React.TouchEvent, goal: Goal) => {
-    // If not already in custom sort mode, switch to it
-    if (sortMethod !== 'custom') {
-      setSortMethod('custom');
-    }
-    
-    // Record the starting position
-    touchStartY.current = e.touches[0].clientY;
-    touchStartX.current = e.touches[0].clientX;
-    touchedGoal.current = goal;
-    
-    // Don't prevent default here to allow normal touch behavior initially
-  };
+  // Removed unused handleTouchStart function
   
   // Handle touch move for mobile drag and drop
   const handleTouchMove = (e: React.TouchEvent, goal: Goal) => {
@@ -352,7 +339,7 @@ const Home: React.FC = () => {
       isReordering.current = true;
       
       try {
-        setIsLoading(true);
+        // setIsLoading removed (was unused)
         
         // Find the indices of the dragged and target goals
         const draggedIndex = filteredGoals.findIndex(g => g.id === draggedGoal.id);
@@ -382,7 +369,7 @@ const Home: React.FC = () => {
       } finally {
         setDraggedGoal(null);
         setDragOverGoal(null);
-        setIsLoading(false);
+        // setIsLoading removed (was unused)
         isReordering.current = false;
       }
     }
@@ -425,7 +412,7 @@ const Home: React.FC = () => {
     isReordering.current = true;
     
     try {
-      setIsLoading(true);
+      // setIsLoading removed (was unused)
       
       // Find the indices of the dragged and target goals
       const draggedIndex = filteredGoals.findIndex(g => g.id === draggedGoal.id);
@@ -455,7 +442,7 @@ const Home: React.FC = () => {
     } finally {
       setDraggedGoal(null);
       setDragOverGoal(null);
-      setIsLoading(false);
+      // setIsLoading removed (was unused)
       isReordering.current = false;
     }
   };
