@@ -171,6 +171,48 @@ export const formatDate = (dateString?: string): string => {
  * @param cadence - The cadence to format
  * @returns Formatted cadence string (e.g., "Daily", "Weekly", etc.)
  */
+
+/**
+ * Returns Tailwind classes for background and text color based on goal status
+ */
+export function getGoalStatusColor(goal: Goal): { bg: string; text: string } {
+  if (goal.completed) {
+    return {
+      bg: 'bg-gradient-to-br from-blue-500/70 to-blue-700/80 border-blue-400',
+      text: 'text-white',
+    };
+  }
+  const status = calculateGoalStatus(goal);
+  switch (status) {
+    case 'active':
+      return {
+        bg: 'bg-gradient-to-br from-green-400/80 to-green-600/90 border-green-400',
+        text: 'text-white',
+      };
+    case 'not-started':
+      return {
+        bg: 'bg-gradient-to-br from-gray-700 to-gray-900 border-gray-700',
+        text: 'text-white',
+      };
+    case 'out-of-cadence':
+      return {
+        bg: 'bg-gradient-to-br from-orange-400/90 to-orange-600/90 border-orange-400',
+        text: 'text-white',
+      };
+    case 'past-due':
+      return {
+        bg: 'bg-gradient-to-br from-purple-500/90 to-purple-700/90 border-purple-500',
+        text: 'text-white',
+      };
+
+    default:
+      return {
+        bg: 'bg-gradient-to-br from-gray-300 to-gray-400 border-gray-300',
+        text: 'text-gray-900',
+      };
+  }
+}
+
 export const formatCadence = (cadence: Cadence): string => {
   switch (cadence) {
     case 'hourly':

@@ -8,6 +8,25 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Utility function to map database goal to Goal type
+const mapDatabaseGoal = (data: any): Goal => ({
+  id: data.id,
+  user_id: data.user_id,
+  name: data.name,
+  description: data.description,
+  count: data.count,
+  targetCount: data.target_count,
+  cadence: data.cadence,
+  isActive: data.is_active,
+  completed: data.completed ?? false,
+  startDate: data.start_date,
+  dueDate: data.due_date,
+  link: data.link,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+  lastClicked: data.last_clicked,
+});
+
 // Authentication functions
 export const signUp = async (email: string, password: string, firstName?: string) => {
   return await supabase.auth.signUp({ 
@@ -405,6 +424,7 @@ export const getGoals = async (sortMethod: SortMethod = 'newest'): Promise<Goal[
     targetCount: goal.target_count,
     cadence: goal.cadence,
     isActive: goal.is_active,
+    completed: goal.completed ?? false,
     startDate: goal.start_date,
     dueDate: goal.due_date,
     link: goal.link,
@@ -444,6 +464,7 @@ export const getGoalById = async (id: string): Promise<Goal> => {
     targetCount: data.target_count,
     cadence: data.cadence,
     isActive: data.is_active,
+    completed: data.completed ?? false,
     startDate: data.start_date,
     dueDate: data.due_date,
     link: data.link,
@@ -561,22 +582,7 @@ export const updateGoalSortOrder = async (id: string, newSortOrder: number): Pro
   }
   
   // Map database snake_case to TypeScript camelCase
-  const result: Goal = {
-    id: updatedGoal.id,
-    user_id: updatedGoal.user_id,
-    name: updatedGoal.name,
-    description: updatedGoal.description,
-    count: updatedGoal.count,
-    targetCount: updatedGoal.target_count,
-    cadence: updatedGoal.cadence,
-    isActive: updatedGoal.is_active,
-    startDate: updatedGoal.start_date,
-    dueDate: updatedGoal.due_date,
-    link: updatedGoal.link,
-    createdAt: updatedGoal.created_at,
-    updatedAt: updatedGoal.updated_at,
-    lastClicked: updatedGoal.last_clicked,
-  };
+  const result: Goal = mapDatabaseGoal(updatedGoal);
   
   // Add the sort order as any to avoid TypeScript errors
   (result as any).sortOrder = updatedGoal.sort_order || 0;
@@ -679,22 +685,7 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   }
   
   // Map the response back to the Goal type
-  return {
-    id: data.id,
-    user_id: data.user_id,
-    name: data.name,
-    description: data.description,
-    count: data.count,
-    targetCount: data.target_count,
-    cadence: data.cadence,
-    isActive: data.is_active,
-    startDate: data.start_date,
-    dueDate: data.due_date,
-    link: data.link,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    lastClicked: data.last_clicked,
-  };
+  return mapDatabaseGoal(data);
 };
 
 export const incrementGoalCount = async (id: string): Promise<Goal> => {
@@ -744,22 +735,7 @@ export const incrementGoalCount = async (id: string): Promise<Goal> => {
   }
   
   // Map the response back to the Goal type
-  return {
-    id: data.id,
-    user_id: data.user_id,
-    name: data.name,
-    description: data.description,
-    count: data.count,
-    targetCount: data.target_count,
-    cadence: data.cadence,
-    isActive: data.is_active,
-    startDate: data.start_date,
-    dueDate: data.due_date,
-    link: data.link,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    lastClicked: data.last_clicked,
-  };
+  return mapDatabaseGoal(data);
 };
 
 export const deleteGoal = async (id: string) => {

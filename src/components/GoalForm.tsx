@@ -13,6 +13,7 @@ interface GoalFormProps {
  */
 const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete }) => {
   const [name, setName] = useState('');
+const [completed, setCompleted] = useState(false);
   const [description, setDescription] = useState('');
   const [cadence, setCadence] = useState<Cadence>('daily');
   const [startDate, setStartDate] = useState('');
@@ -31,6 +32,7 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
       setDueDate(goal.dueDate ? goal.dueDate.split('T')[0] : '');
       setLink(goal.link || '');
       setIsActive(goal.isActive);
+      setCompleted(goal.completed || false);
       setCount(goal.count);
       setTargetCount(goal.targetCount || 1);
     } else {
@@ -138,6 +140,7 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
       dueDate: formattedDueDate,
       link: link || undefined,
       isActive,
+      completed,
       count,
       targetCount
     } as any); // Type assertion to avoid TypeScript error
@@ -200,18 +203,30 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onSubmit, onCancel, onDelete 
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
-          />
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            />
+          </div>
+          <div className="flex items-center mt-6">
+            <input
+              type="checkbox"
+              id="completed"
+              checked={completed}
+              onChange={e => setCompleted(e.target.checked)}
+              className="h-5 w-5 text-green-600 border-gray-200 rounded focus:ring-green-500"
+            />
+            <label htmlFor="completed" className="ml-2 text-base font-medium text-gray-700 whitespace-nowrap">Completed</label>
+          </div>
         </div>
 
         <div>

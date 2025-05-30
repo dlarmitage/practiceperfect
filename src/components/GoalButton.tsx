@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Goal, GoalStatus } from '../types';
-import { calculateGoalStatus, formatDate, formatCadence } from '../utils/goalUtils';
+import type { Goal } from '../types';
+import { formatDate, getGoalStatusColor } from '../utils/goalUtils';
+
+// Helper to display cadence as 'per hour', 'per day', etc.
+function getCadenceLabel(cadence: string) {
+  switch (cadence) {
+    case 'hourly':
+      return 'per hour';
+    case 'daily':
+      return 'per day';
+    case 'weekly':
+      return 'per week';
+    case 'monthly':
+      return 'per month';
+    default:
+      return '';
+  }
+}
+
 import { triggerConfettiEffect } from '../utils/confettiUtils';
 import SessionTimer from './SessionTimer';
 import HelpTooltip from './HelpTooltip';
@@ -117,8 +134,6 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
   // Track if the pointer is down
   const isPointerDown = useRef(false);
   
-  const status: GoalStatus = calculateGoalStatus(goal);
-  
   // Handle pointer down event
   const handlePointerDown = (e: React.PointerEvent) => {
     // Prevent default behavior
@@ -227,16 +242,6 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
     onEdit();
   };
   
-  // Get the status color based on the goal status
-  const statusColors: Record<string, string> = {
-    'completed': 'bg-green-600',
-    'in-progress': 'bg-blue-600',
-    'not-started': 'bg-gray-600',
-    'past-due': 'bg-red-600',
-    'active': 'bg-[#2f8f69]',
-    'out-of-cadence': 'bg-yellow-600'
-  };
-
   return (
     <div className="relative">
       {/* Help tooltip */}
@@ -253,17 +258,10 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
           onCancel={handleSessionCancel}
         />
       )}
-      
-      <div 
-        className={`relative flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-300 text-white font-medium min-h-[180px] w-full mb-4 
-          ${statusColors[status]} 
-          border-2 border-t-white/30 border-l-white/30 border-r-black/10 border-b-black/20
-          shadow-md
-          hover:translate-y-[-2px] hover:shadow-lg hover:border-t-white/40 hover:border-l-white/40
-          active:translate-y-[1px] active:shadow-inner active:scale-[0.98] active:border-t-black/10 active:border-l-black/10 active:border-r-white/20 active:border-b-white/10
-          select-none touch-none 
-          ${isLongPress ? 'scale-95 opacity-90 border-t-black/10 border-l-black/10 border-r-white/20 border-b-white/10' : ''}
-        `}
+
+      {/* Main card container with dynamic bg color */}
+      <div
+        className={`relative flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-300 font-medium min-h-[180px] w-full mb-4 ${getGoalStatusColor(goal).bg} border-2 border-t-white/30 border-l-white/30 border-r-black/10 border-b-black/20 shadow-md hover:translate-y-[-2px] hover:shadow-lg hover:border-t-white/40 hover:border-l-white/40 active:translate-y-[1px] active:shadow-inner active:scale-[0.98] active:border-t-black/10 active:border-l-black/10 active:border-r-white/20 active:border-b-white/10 select-none touch-none ${isLongPress ? 'scale-95 opacity-90 border-t-black/10 border-l-black/10 border-r-white/20 border-b-white/10' : ''}`}
         onClick={trackCardClick}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
@@ -273,11 +271,9 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
         <div 
           className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-6 flex flex-col items-center justify-center gap-[3px] z-10"
           onPointerDown={(e) => {
-            // Stop propagation to prevent the long press from triggering the session timer
             e.stopPropagation();
           }}
           onTouchStart={(e) => {
-            // Stop propagation to prevent the long press from triggering the session timer
             e.stopPropagation();
           }}
         >
@@ -291,16 +287,10 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
           className="absolute top-2 right-2 bg-white/30 rounded-full h-8 w-8 flex items-center justify-center text-white font-bold cursor-pointer hover:bg-white/50 active:bg-white/70 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            
-            // Check if shift key is pressed for decrement
             const isDecrement = e.shiftKey && onDecrement;
-            
-            // Only provide feedback for increments, not decrements
             if (!isDecrement) {
               provideFeedback(true);
             }
-            
-            // Execute the appropriate action
             if (isDecrement) {
               onDecrement && onDecrement();
             } else {
@@ -310,7 +300,7 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
         >
           {goal.count}
         </div>
-        
+
         {/* Info/Edit button */}
         <div 
           className="absolute top-2 left-2 bg-white/30 rounded-full h-8 w-8 flex items-center justify-center text-white font-bold cursor-pointer hover:bg-white/50 active:bg-white/70 transition-colors"
@@ -321,19 +311,16 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
 
         {/* Goal content */}
         <div className="w-full flex flex-col items-center justify-center">
-          <div className="text-center text-xl font-bold mb-2 mt-4">
+          <div className={`text-center text-xl font-bold mb-2 mt-4 ${getGoalStatusColor(goal).text}`}>
             {goal.name}
           </div>
-          
           {goal.description && (
-            <p className="text-sm opacity-90 line-clamp-2 mb-2 text-center">{goal.description}</p>
+            <p className={`text-sm opacity-90 line-clamp-2 mb-2 text-center ${getGoalStatusColor(goal).text}`}>{goal.description}</p>
           )}
-          
-          <div className="text-center opacity-80 mb-auto">
+          <div className={`text-center opacity-80 mb-auto ${getGoalStatusColor(goal).text}`}>
             <div className="text-sm">Total Practice Sessions: {goal.count}</div>
-            <div className="text-sm">Cadence is {goal.targetCount} per {formatCadence(goal.cadence).replace('ly', '')}</div>
+            <div className="text-sm">Cadence: {goal.targetCount} {goal.targetCount === 1 ? 'time' : 'times'} {getCadenceLabel(goal.cadence)}</div>
           </div>
-          
           {/* Link button container - always the same height */}
           <div className="mt-3 h-8 flex items-center justify-center">
             {goal.link ? (
@@ -347,15 +334,16 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
               </a>
             ) : null}
           </div>
-          
-          {/* Due date (if set) */}
-          {goal.dueDate && (
-            <div className="mt-2">
-              <p className={`text-sm ${status === 'past-due' ? 'text-red-200 font-bold' : 'text-white/80'}`}>
+          {/* Due date (always render for consistent card height) */}
+          <div className="mt-2 min-h-[22px] flex items-center justify-center">
+            {goal.dueDate ? (
+              <p className={`text-sm ${getGoalStatusColor(goal).text}`}>
                 Due: {formatDate(goal.dueDate)}
               </p>
-            </div>
-          )}
+            ) : (
+              <span className="invisible select-none text-sm">placeholder</span>
+            )}
+          </div>
         </div>
       </div>
     </div>

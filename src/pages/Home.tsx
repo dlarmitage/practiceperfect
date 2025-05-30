@@ -178,6 +178,7 @@ const Home: React.FC = () => {
           targetCount: goalData.targetCount,
           cadence: goalData.cadence,
           isActive: goalData.isActive,
+          completed: goalData.completed,
           startDate: goalData.startDate,
           dueDate: goalData.dueDate,
           link: goalData.link,

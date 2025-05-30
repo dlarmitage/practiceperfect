@@ -30,6 +30,7 @@ export interface Goal {
   targetCount: number;
   cadence: Cadence;
   isActive: boolean;
+  completed: boolean; // Whether the goal is marked as completed
   startDate: string;
   dueDate?: string;
   link?: string;

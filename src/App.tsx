@@ -10,6 +10,7 @@ import LandingPage from './pages/LandingPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import TailwindDemo from './pages/TailwindDemo';
+import LandingPageMockup from './pages/LandingPageMockup';
 
 // PWA registration will be implemented after setting up the proper dependencies
 
@@ -56,6 +57,7 @@ function App() {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 <Route path="/tailwind" element={<TailwindDemo />} />
+                <Route path="/mockup" element={<LandingPageMockup />} />
                 
                 {/* Protected routes */}
                 <Route path="/home" element={<AuthenticatedRoutes />} />
