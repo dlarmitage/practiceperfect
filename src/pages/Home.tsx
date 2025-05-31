@@ -98,18 +98,40 @@ const Home: React.FC = () => {
     };
   }, []);
 
+  // Array of motivational messages for the welcome message
+  const motivationalMessages = [
+    "Every session counts. Keep building your momentum.",
+    "Small steps lead to big achievements. Stay consistent.",
+    "Practice today, progress tomorrow. You're on the right path.",
+    "Your dedication shapes your success. Keep going.",
+    "Habits form through repetition. Stay committed.",
+    "Each practice session brings you closer to your goals.",
+    "You're not just practicing—you're becoming.",
+    "Consistency beats intensity. Show up today.",
+    "Progress isn't always loud. Trust the process.",
+    "Build the habit, and the habit will build you.",
+    "Your future self is thanking you for today's effort.",
+    "Practice doesn't make perfect—practice makes progress."
+  ];
+
   useEffect(() => {
     const fetchWelcomeMessage = () => {
       // Get the user's first name from user metadata if available
       const firstName = user?.user_metadata?.display_name || '';
       
-      // Use default welcome messages instead of OpenAI
       if (goals.length > 0) {
-        const defaultMessage = firstName 
-          ? `Welcome to PracticePerfect, ${firstName}! Track your practice sessions and achieve your goals.`
-          : 'Welcome to PracticePerfect! Track your practice sessions and achieve your goals.';
-        setWelcomeMessage(defaultMessage);
+        // Select a random motivational message from the array
+        const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
+        const randomMessage = motivationalMessages[randomIndex];
+        
+        // Create the welcome message with the user's first name and the random motivational message
+        const welcomeMsg = firstName 
+          ? `Welcome back, ${firstName}. ${randomMessage}`
+          : `Welcome back. ${randomMessage}`;
+        
+        setWelcomeMessage(welcomeMsg);
       } else {
+        // For users with no goals, use a different message encouraging them to create goals
         const defaultMessage = firstName 
           ? `Welcome to PracticePerfect, ${firstName}! Create your first goal to start tracking your practice sessions.`
           : 'Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.';
