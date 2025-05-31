@@ -2,11 +2,50 @@ import { createClient } from '@supabase/supabase-js';
 import type { Goal, Session } from '../types';
 import type { SortMethod } from '../context/GoalContext';
 
-// Initialize Supabase client
+// Initialize Supabase client with extended session persistence
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Configure client with 60-day session persistence
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    storageKey: 'practice-perfect-auth',
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit',
+    storage: {
+      getItem: (key) => {
+        try {
+          return localStorage.getItem(key);
+        } catch (error) {
+          console.error('Error accessing localStorage:', error);
+          return null;
+        }
+      },
+      setItem: (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+          // Also set a cookie with a 60-day expiration for iOS PWA
+          const expirationDate = new Date();
+          expirationDate.setDate(expirationDate.getDate() + 60);
+          document.cookie = `${key}=${value}; expires=${expirationDate.toUTCString()}; path=/; secure; SameSite=Strict`;
+        } catch (error) {
+          console.error('Error setting storage:', error);
+        }
+      },
+      removeItem: (key) => {
+        try {
+          localStorage.removeItem(key);
+          // Also remove the cookie
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; SameSite=Strict`;
+        } catch (error) {
+          console.error('Error removing item from storage:', error);
+        }
+      }
+    }
+  }
+});
 
 // Utility function to map database goal to Goal type
 const mapDatabaseGoal = (data: any): Goal => ({

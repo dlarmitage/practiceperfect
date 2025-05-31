@@ -7,7 +7,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      strategies: 'injectManifest',
+      injectRegister: 'auto',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      minify: true,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB

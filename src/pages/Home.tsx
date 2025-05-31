@@ -9,7 +9,7 @@ import GoalButton from '../components/GoalButton';
 import GoalForm from '../components/GoalForm';
 import ConfirmationModal from '../components/ConfirmationModal';
 import PositionSelectModal from '../components/PositionSelectModal';
-import { generateWelcomeMessage } from '../services/openai';
+// import { generateWelcomeMessage } from '../services/openai'; // Commented out to eliminate OpenAI costs
 import PWAInstallModal from '../components/PWAInstallModal';
 import { isRunningAsPWA } from '../utils/deviceDetection';
 
@@ -45,6 +45,7 @@ const Home: React.FC = () => {
   const [currentPosition] = useState(0); // setCurrentPosition is unused
   const [isPWA, setIsPWA] = useState(false);
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   
   // Ref to track if we're currently reordering goals
   const isReordering = useRef(false);
@@ -98,28 +99,22 @@ const Home: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchWelcomeMessage = async () => {
+    const fetchWelcomeMessage = () => {
       // Get the user's first name from user metadata if available
       const firstName = user?.user_metadata?.display_name || '';
       
+      // Use default welcome messages instead of OpenAI
       if (goals.length > 0) {
-        try {
-          const message = await generateWelcomeMessage(goals, firstName);
-          setWelcomeMessage(message);
-        } catch (error) {
-          console.error('Error generating welcome message:', error);
-          const defaultMessage = firstName 
-            ? `Welcome to PracticePerfect, ${firstName}! Track your practice sessions and achieve your goals.`
-            : 'Welcome to PracticePerfect! Track your practice sessions and achieve your goals.';
-          setWelcomeMessage(defaultMessage);
-        }
+        const defaultMessage = firstName 
+          ? `Welcome to PracticePerfect, ${firstName}! Track your practice sessions and achieve your goals.`
+          : 'Welcome to PracticePerfect! Track your practice sessions and achieve your goals.';
+        setWelcomeMessage(defaultMessage);
       } else {
         const defaultMessage = firstName 
           ? `Welcome to PracticePerfect, ${firstName}! Create your first goal to start tracking your practice sessions.`
           : 'Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.';
         setWelcomeMessage(defaultMessage);
       }
-      // setIsLoading removed (was unused)
     };
 
     if (!goalsLoading && user) {
@@ -132,7 +127,6 @@ const Home: React.FC = () => {
     }
   }, [goals, goalsLoading, user]);
 
-  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
   const handleGoalClick = async (goalId: string) => {
     try {

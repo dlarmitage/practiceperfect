@@ -176,6 +176,14 @@ export const formatDate = (dateString?: string): string => {
  * Returns Tailwind classes for background and text color based on goal status
  */
 export function getGoalStatusColor(goal: Goal): { bg: string; text: string } {
+  // If goal is inactive, return grey color regardless of other status
+  if (!goal.isActive) {
+    return {
+      bg: 'bg-gradient-to-br from-gray-400/80 to-gray-600/90 border-gray-400',
+      text: 'text-white',
+    };
+  }
+  
   if (goal.completed) {
     return {
       bg: 'bg-gradient-to-br from-blue-500/70 to-blue-700/80 border-blue-400',

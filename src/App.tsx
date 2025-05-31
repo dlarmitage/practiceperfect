@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { GoalProvider } from './context/GoalContext';
+import UpdateNotification from './components/UpdateNotification';
 import { SessionProvider } from './context/SessionContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -48,6 +49,7 @@ function App() {
         <GoalProvider>
           <SessionProvider>
             <div className="flex flex-col min-h-screen">
+              <UpdateNotification />
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<LandingPage />} />
