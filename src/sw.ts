@@ -83,6 +83,16 @@ registerRoute(new NavigationRoute(navigationHandler));
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    
+    // Notify all clients that we're activating
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'RELOAD_PAGE',
+          message: 'New version activated, reloading page...'
+        });
+      });
+    });
   }
 });
 

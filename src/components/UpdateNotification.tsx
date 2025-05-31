@@ -1,18 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { updateSW } from '../main';
 
+// Keys for storing update-related information
+const LAST_SKIPPED_UPDATE_KEY = 'last_skipped_update_timestamp';
+const CURRENT_APP_VERSION_KEY = 'current_app_version';
+const LAST_NOTIFIED_VERSION_KEY = 'last_notified_version';
+
+// App version - this should be updated when you make significant changes
+// This could also be pulled from your package.json version in a real app
+const APP_VERSION = '1.0.0';
+
 /**
  * Component that shows a notification when a new version of the app is available
  * and provides a button to refresh the page to apply the update
  */
 const UpdateNotification: React.FC = () => {
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
+  
+  // Check if we should show the notification based on last skipped time
+  const shouldShowNotification = () => {
+    const lastSkippedTimestamp = localStorage.getItem(LAST_SKIPPED_UPDATE_KEY);
+    if (!lastSkippedTimestamp) return true;
+    
+    const lastSkipped = parseInt(lastSkippedTimestamp, 10);
+    const now = Date.now();
+    const oneDayInMs = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
+    // Show notification if it's been more than 24 hours since last skip
+    return (now - lastSkipped) > oneDayInMs;
+  };
 
   useEffect(() => {
+    // Store current app version in localStorage when component mounts
+    // This helps track which version the user is currently running
+    localStorage.setItem(CURRENT_APP_VERSION_KEY, APP_VERSION);
+    
     // Listen for messages from the service worker
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
-        setShowUpdateNotification(true);
+        // Get the last version we notified about
+        const lastNotifiedVersion = localStorage.getItem(LAST_NOTIFIED_VERSION_KEY);
+        
+        // If we've already notified about this version, don't show again
+        if (lastNotifiedVersion === APP_VERSION) {
+          console.log('Already notified about this version');
+          return;
+        }
+        
+        // Only show notification if we haven't recently skipped
+        if (shouldShowNotification()) {
+          // Store the version we're notifying about
+          localStorage.setItem(LAST_NOTIFIED_VERSION_KEY, APP_VERSION);
+          setShowUpdateNotification(true);
+        }
+      } else if (event.data && event.data.type === 'RELOAD_PAGE') {
+        // Service worker has activated, reload the page
+        console.log('Received reload message from service worker');
+        window.location.reload();
       }
     };
 
@@ -31,8 +75,21 @@ const UpdateNotification: React.FC = () => {
         try {
           const registration = await navigator.serviceWorker.ready;
           if (registration.waiting) {
-            // There's a waiting service worker, show the notification
-            setShowUpdateNotification(true);
+            // Get the last version we notified about
+            const lastNotifiedVersion = localStorage.getItem(LAST_NOTIFIED_VERSION_KEY);
+            
+            // If we've already notified about this version, don't show again
+            if (lastNotifiedVersion === APP_VERSION) {
+              console.log('Already notified about this version');
+              return;
+            }
+            
+            // There's a waiting service worker, show the notification if we haven't recently skipped
+            if (shouldShowNotification()) {
+              // Store the version we're notifying about
+              localStorage.setItem(LAST_NOTIFIED_VERSION_KEY, APP_VERSION);
+              setShowUpdateNotification(true);
+            }
           }
         } catch (error) {
           console.error('Error checking for service worker updates:', error);
@@ -51,19 +108,68 @@ const UpdateNotification: React.FC = () => {
     };
   }, []);
 
-  const handleUpdate = () => {
-    // Use the updateSW function from the registration if available
-    if (updateSW && typeof updateSW === 'function') {
-      updateSW(true);
-    } else {
-      // Fallback: Send message to the service worker to skip waiting
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-      }
+  // Handle the update now button click
+  const handleUpdate = async () => {
+    try {
+      // Update the current app version in localStorage
+      // This ensures we know the user has the latest version after update
+      localStorage.setItem(CURRENT_APP_VERSION_KEY, APP_VERSION);
       
-      // Reload the page to apply the update
+      // First try the updateSW function
+      if (updateSW && typeof updateSW === 'function') {
+        updateSW(true);
+        
+        // Add a small delay before reloading to ensure the service worker has time to activate
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        // Fallback approach: Get all service worker registrations
+        if ('serviceWorker' in navigator) {
+          // Get the registration
+          const registration = await navigator.serviceWorker.ready;
+          
+          // If there's a waiting service worker, tell it to skip waiting
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+          
+          // Force update check
+          await registration.update();
+          
+          // Send message to any active service worker
+          if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+          }
+          
+          // Reload the page after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          // If service workers aren't supported, just reload
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error('Error updating service worker:', error);
+      // If all else fails, just reload the page
       window.location.reload();
     }
+  };
+  
+  // Handle the skip for now button click
+  const handleSkip = () => {
+    // Save the current timestamp to localStorage
+    localStorage.setItem(LAST_SKIPPED_UPDATE_KEY, Date.now().toString());
+    
+    // Also store the version we're skipping, so we don't show it again after refresh
+    // This ensures if they kill the app and it refreshes automatically, they won't see
+    // the update notification for the same version again
+    localStorage.setItem(LAST_NOTIFIED_VERSION_KEY, APP_VERSION);
+    
+    // Hide the notification
+    setShowUpdateNotification(false);
   };
 
   if (!showUpdateNotification) {
@@ -71,16 +177,24 @@ const UpdateNotification: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-xs">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm">
       <div className="flex flex-col">
-        <div className="font-medium mb-2">App Update Available</div>
-        <div className="text-sm mb-3">A new version is available. Update now for the latest features and improvements.</div>
-        <button 
-          onClick={handleUpdate}
-          className="bg-white text-blue-600 hover:bg-blue-100 font-medium py-1 px-3 rounded text-sm"
-        >
-          Update Now
-        </button>
+        <div className="font-medium mb-2 text-center">App Update Available</div>
+        <div className="text-sm mb-3 text-center">A new version is available. Update now for the latest features and improvements.</div>
+        <div className="flex space-x-3 justify-center">
+          <button 
+            onClick={handleUpdate}
+            className="bg-white text-blue-600 hover:bg-blue-100 font-medium py-2 px-4 rounded text-sm"
+          >
+            Update Now
+          </button>
+          <button 
+            onClick={handleSkip}
+            className="bg-transparent border border-white text-white hover:bg-blue-700 font-medium py-2 px-4 rounded text-sm"
+          >
+            Skip for Now
+          </button>
+        </div>
       </div>
     </div>
   );
