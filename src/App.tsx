@@ -13,13 +13,15 @@ import TermsOfService from './pages/TermsOfService';
 import TailwindDemo from './pages/TailwindDemo';
 import LandingPageMockup from './pages/LandingPageMockup';
 
-// PWA registration will be implemented after setting up the proper dependencies
-
 // Import the AuthenticatedRoutes component
 import AuthenticatedRoutes from './components/AuthenticatedRoutes';
 
+// Import the RootRedirect component for handling authentication at root route
+import RootRedirect from './components/RootRedirect';
+
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
     // Check for online/offline status
@@ -29,8 +31,22 @@ function App() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // We used to check if app is running as PWA here
-    // but we no longer need this for routing purposes
+    // Check if the app is running as a PWA
+    // This helps with proper routing for installed PWA users
+    const checkIfPWA = () => {
+      // iOS detection - need to use type assertion for standalone property
+      const isIOSPWA = (window.navigator as any).standalone === true;
+      
+      // Android/Chrome detection
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      
+      // Set PWA status
+      setIsPWA(isIOSPWA || isStandalone);
+      
+      console.log('App is running as PWA:', isIOSPWA || isStandalone);
+    };
+    
+    checkIfPWA();
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -51,8 +67,10 @@ function App() {
             <div className="flex flex-col min-h-screen">
               <UpdateNotification />
               <Routes>
+                {/* Root route with smart redirection */}
+                <Route path="/" element={<RootRedirect isPWA={isPWA} landingPage={<LandingPage />} />} />
+                
                 {/* Public routes */}
-                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />

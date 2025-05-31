@@ -114,40 +114,56 @@ const Home: React.FC = () => {
     "Practice doesn't make perfect—practice makes progress."
   ];
 
-  useEffect(() => {
-    const fetchWelcomeMessage = () => {
-      // Get the user's first name from user metadata if available
-      const firstName = user?.user_metadata?.display_name || '';
+  // Define the welcome message generation function outside useEffect to avoid recreation
+  const generateWelcomeMessage = () => {
+    // Get the user's first name from user metadata if available
+    const firstName = user?.user_metadata?.display_name || '';
+    
+    if (goals.length > 0) {
+      // Select a random motivational message from the array
+      const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
+      const randomMessage = motivationalMessages[randomIndex];
       
-      if (goals.length > 0) {
-        // Select a random motivational message from the array
-        const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
-        const randomMessage = motivationalMessages[randomIndex];
-        
-        // Create the welcome message with the user's first name and the random motivational message
-        const welcomeMsg = firstName 
-          ? `Welcome back, ${firstName}. ${randomMessage}`
-          : `Welcome back. ${randomMessage}`;
-        
-        setWelcomeMessage(welcomeMsg);
-      } else {
-        // For users with no goals, use a different message encouraging them to create goals
-        const defaultMessage = firstName 
-          ? `Welcome to PracticePerfect, ${firstName}! Create your first goal to start tracking your practice sessions.`
-          : 'Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.';
-        setWelcomeMessage(defaultMessage);
-      }
-    };
-
-    if (!goalsLoading && user) {
-      fetchWelcomeMessage();
+      // Create the welcome message with the user's first name and the random motivational message
+      const welcomeMsg = firstName 
+        ? `Welcome back, ${firstName}. ${randomMessage}`
+        : `Welcome back. ${randomMessage}`;
       
-      // Mark initial data as loaded once we've fetched goals
-      if (!initialDataLoaded) {
-        setInitialDataLoaded(true);
-      }
+      return welcomeMsg;
+    } else {
+      // For users with no goals, use a different message encouraging them to create goals
+      const defaultMessage = firstName 
+        ? `Welcome to PracticePerfect, ${firstName}! Create your first goal to start tracking your practice sessions.`
+        : 'Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.';
+      return defaultMessage;
     }
-  }, [goals, goalsLoading, user]);
+  };
+
+  // This effect runs only after goals are fully loaded and initialDataLoaded is true
+  // Using a ref to track if we've already set the welcome message
+  const welcomeMessageSet = useRef(false);
+  
+  useEffect(() => {
+    // Only set the welcome message when we're sure goals are loaded and initialDataLoaded is true
+    // And only if we haven't already set it (using the ref to track this)
+    if (initialDataLoaded && !goalsLoading && user && !welcomeMessageSet.current) {
+      // Set the ref to true to prevent multiple welcome message generations
+      welcomeMessageSet.current = true;
+      
+      // Wait a bit to ensure all data processing is complete
+      const timer = setTimeout(() => {
+        const message = generateWelcomeMessage();
+        setWelcomeMessage(message);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Cleanup function to reset state when component unmounts
+    return () => {
+      welcomeMessageSet.current = false;
+    };
+  }, [initialDataLoaded, goals, goalsLoading, user, motivationalMessages]);
 
 
   const handleGoalClick = async (goalId: string) => {
@@ -481,12 +497,15 @@ const Home: React.FC = () => {
 
   // Remove duplicate declarations
 
-  // Skip loading indicator completely - just render the content
-  // This ensures no loading indicator is shown when switching tabs
-  // We'll still set initialDataLoaded for consistency
+  // Set initialDataLoaded when goals are loaded
+  // This prevents showing the welcome screen while goals are loading
   useEffect(() => {
     if (goalsLoading === false) {
-      setInitialDataLoaded(true);
+      // Add a small delay to ensure all data is processed
+      const timer = setTimeout(() => {
+        setInitialDataLoaded(true);
+      }, 300); // Increased delay to ensure goals are fully loaded
+      return () => clearTimeout(timer);
     }
   }, [goalsLoading]);
   
@@ -533,7 +552,7 @@ const Home: React.FC = () => {
                 id="show-inactive"
                 checked={showInactive}
                 onChange={(e) => setShowInactive(e.target.checked)}
-                className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+                className="h-4 w-4 text-blue-600 rounded bg-white border border-gray-300 focus:ring-0 focus:outline-none appearance-none checked:border-blue-600"
               />
               <label htmlFor="show-inactive" className="ml-2 text-sm text-gray-700 whitespace-nowrap">
                 Show Inactive
@@ -590,8 +609,14 @@ const Home: React.FC = () => {
           </div>
         )}
         
-        {/* Goals grid */}
-        {filteredGoals.length === 0 ? (
+        {/* Goals grid with loading state */}
+        {!initialDataLoaded ? (
+          <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          </div>
+        ) : filteredGoals.length === 0 ? (
           <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
             {goals.length === 0 ? (
               <div className="space-y-4">
@@ -678,7 +703,7 @@ const Home: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-6 sm:px-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredGoals.map((goal) => (
               <div 
                 key={goal.id}

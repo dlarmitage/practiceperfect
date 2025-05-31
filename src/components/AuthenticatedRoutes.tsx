@@ -12,9 +12,20 @@ import Avatar from './Avatar';
  * Redirects to login if user is not authenticated
  */
 const AuthenticatedRoutes: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Show loading spinner while checking authentication
+  // This prevents immediate redirection to login when refreshing the page
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  // Only redirect to login if we're sure the user is not authenticated
   if (!user) {
     return <Navigate to="/login" />;
   }

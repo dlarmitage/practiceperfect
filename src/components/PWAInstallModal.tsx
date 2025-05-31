@@ -163,7 +163,7 @@ const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                   onClose();
                 }
               }}
-              className="mr-2 h-4 w-4 text-blue-600 rounded"
+              className="mr-2 h-4 w-4 text-blue-600 rounded bg-white border border-gray-300 focus:ring-0 focus:outline-none appearance-none checked:border-blue-600"
             />
             Don't show again
           </label>

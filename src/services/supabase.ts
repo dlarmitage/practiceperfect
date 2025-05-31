@@ -6,7 +6,19 @@ import type { SortMethod } from '../context/GoalContext';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Configure client with 60-day session persistence
+// Helper function to read cookies
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+// Configure client with 365-day session persistence (increased from 60 days)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -17,30 +29,82 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: {
       getItem: (key) => {
         try {
-          return localStorage.getItem(key);
-        } catch (error) {
-          console.error('Error accessing localStorage:', error);
+          // First try localStorage
+          const localData = localStorage.getItem(key);
+          if (localData) return localData;
+          
+          // If not in localStorage, try cookies (important for iOS PWA)
+          const cookieData = getCookie(key);
+          if (cookieData) {
+            // If found in cookie but not localStorage, restore to localStorage
+            try {
+              localStorage.setItem(key, cookieData);
+            } catch (e) {
+              console.warn('Could not restore cookie data to localStorage', e);
+            }
+            return cookieData;
+          }
+          
           return null;
+        } catch (error) {
+          console.error('Error accessing storage:', error);
+          // Fall back to cookies only
+          return getCookie(key);
         }
       },
       setItem: (key, value) => {
         try {
+          // Try to set in localStorage first
           localStorage.setItem(key, value);
-          // Also set a cookie with a 60-day expiration for iOS PWA
+          
+          // Always set a cookie with a 365-day expiration for iOS PWA
+          // This is critical for iOS PWA persistence
           const expirationDate = new Date();
-          expirationDate.setDate(expirationDate.getDate() + 60);
-          document.cookie = `${key}=${value}; expires=${expirationDate.toUTCString()}; path=/; secure; SameSite=Strict`;
+          expirationDate.setDate(expirationDate.getDate() + 365); // Increased from 60 to 365 days
+          
+          // Use HttpOnly: false to ensure the cookie is accessible to JavaScript
+          // Use SameSite=Lax to allow the cookie to be sent in same-site contexts
+          document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax`;
+          
+          // For debugging
+          console.log(`Auth data saved to both localStorage and cookies with 365-day expiration`);
         } catch (error) {
-          console.error('Error setting storage:', error);
+          console.error('Error setting localStorage:', error);
+          // If localStorage fails, still try to set the cookie
+          try {
+            const expirationDate = new Date();
+            expirationDate.setDate(expirationDate.getDate() + 365);
+            document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax`;
+            console.log('Fallback: Auth data saved to cookies only');
+          } catch (cookieError) {
+            console.error('Critical error: Could not save auth data to cookies:', cookieError);
+          }
         }
       },
       removeItem: (key) => {
         try {
+          // Remove from localStorage
           localStorage.removeItem(key);
-          // Also remove the cookie
-          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; SameSite=Strict`;
+          
+          // Remove all cookies with this key by setting an expired date
+          // Use multiple cookie settings to ensure all variations are removed
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax;`;
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict;`;
+          document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure;`;
+          
+          console.log(`Auth data removed from both localStorage and cookies`);
         } catch (error) {
           console.error('Error removing item from storage:', error);
+          // Still try to remove cookies even if localStorage fails
+          try {
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax;`;
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict;`;
+            document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure;`;
+          } catch (cookieError) {
+            console.error('Error removing cookies:', cookieError);
+          }
         }
       }
     }

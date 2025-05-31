@@ -210,7 +210,7 @@ const Analysis: React.FC = () => {
               id="includeCompleted"
               checked={includeCompleted}
               onChange={(e) => setIncludeCompleted(e.target.checked)}
-              className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              className="h-4 w-4 text-blue-600 rounded bg-white border border-gray-300 focus:ring-0 focus:outline-none appearance-none checked:border-blue-600"
             />
             <label htmlFor="includeCompleted" className="text-sm text-gray-700">
               Include Completed Goals

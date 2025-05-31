@@ -80,22 +80,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Fetch the current user on mount
+    // Fetch the current user on mount with improved iOS PWA persistence
     const fetchUser = async () => {
       try {
+        // Always try to refresh the session first
+        // This is important for page refreshes and PWA launches
+        console.log('Attempting to refresh session on startup...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshData.session && refreshData.user) {
+          console.log('Session refreshed successfully', refreshData.user.email);
+          const userData: User = {
+            id: refreshData.user.id,
+            email: refreshData.user.email || '',
+            user_metadata: refreshData.user.user_metadata
+          };
+          setUser(userData);
+          return; // Exit early if we successfully refreshed the session
+        } else if (refreshError) {
+          console.warn('Session refresh attempt failed:', refreshError);
+        }
+        
+        // If session refresh didn't work, try getting the current user
+        console.log('Trying getCurrentUser as fallback...');
         const { data } = await getCurrentUser();
+        
         if (data.user) {
+          console.log('User found via getCurrentUser()', data.user.email);
           const userData: User = {
             id: data.user.id,
             email: data.user.email || '',
             user_metadata: data.user.user_metadata
           };
           setUser(userData);
+        } else {
+          console.log('No authenticated user found');
+          setUser(null);
         }
       } catch (err) {
+        console.error('Error in fetchUser:', err);
         setError(err instanceof Error ? err : new Error('Unknown error occurred'));
       } finally {
-        setLoading(false);
+        // Add a small delay before setting loading to false
+        // This gives the auth state time to fully resolve
+        setTimeout(() => {
+          setLoading(false);
+        }, 300);
       }
     };
 

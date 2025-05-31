@@ -160,7 +160,7 @@ const [completed, setCompleted] = useState(false);
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
               disabled={new Date(startDate) > new Date(new Date().setHours(0, 0, 0, 0))}
-              className="h-5 w-5 text-blue-600 border-gray-200 rounded focus:ring-blue-500"
+              className="h-5 w-5 text-blue-600 rounded bg-white border border-gray-300 focus:ring-0 focus:outline-none appearance-none checked:border-blue-600"
             />
             <label htmlFor="isActive" className="ml-2 flex items-center text-base font-medium text-gray-700 whitespace-nowrap">
               Active
@@ -223,7 +223,7 @@ const [completed, setCompleted] = useState(false);
               id="completed"
               checked={completed}
               onChange={e => setCompleted(e.target.checked)}
-              className="h-5 w-5 text-green-600 border-gray-200 rounded focus:ring-green-500"
+              className="h-5 w-5 text-green-600 rounded bg-white border border-gray-300 focus:ring-0 focus:outline-none appearance-none checked:border-green-600"
             />
             <label htmlFor="completed" className="ml-2 text-base font-medium text-gray-700 whitespace-nowrap">Completed</label>
           </div>
