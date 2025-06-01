@@ -638,6 +638,44 @@ const Home: React.FC = () => {
     }, 300); // Increased timeout to ensure no accidental clicks
   };
 
+  // Pull-to-refresh state and refs
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const mainRef = useRef<HTMLDivElement>(null);
+  const startY = useRef<number | null>(null);
+  const pulling = useRef(false);
+  const PULL_THRESHOLD = 60;
+
+  // Pull-to-refresh handlers (only for main goals list)
+  const handlePullTouchStart = (e: React.TouchEvent) => {
+    if (mainRef.current && mainRef.current.scrollTop === 0) {
+      startY.current = e.touches[0].clientY;
+      pulling.current = true;
+    }
+  };
+  const handlePullTouchMove = (e: React.TouchEvent) => {
+    if (!pulling.current || startY.current === null) return;
+    const delta = e.touches[0].clientY - startY.current;
+    if (delta > 0) {
+      setPullDistance(delta > 120 ? 120 : delta);
+      if (mainRef.current) mainRef.current.style.overscrollBehavior = 'contain';
+      e.preventDefault(); // Prevent native browser pull-to-refresh
+    }
+  };
+  const handlePullTouchEnd = async () => {
+    if (!pulling.current) return;
+    if (pullDistance > PULL_THRESHOLD) {
+      setIsRefreshing(true);
+      setPullDistance(0);
+      await fetchGoals();
+      setTimeout(() => setIsRefreshing(false), 800);
+    } else {
+      setPullDistance(0);
+    }
+    pulling.current = false;
+    if (mainRef.current) mainRef.current.style.overscrollBehavior = '';
+  };
+
   // Remove duplicate declarations
 
   // Set initialDataLoaded when goals are loaded
@@ -666,7 +704,13 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
+      <main
+        className="flex-1 overflow-y-auto px-2 sm:px-0"
+        ref={mainRef}
+        onTouchStart={handlePullTouchStart}
+        onTouchMove={handlePullTouchMove}
+        onTouchEnd={handlePullTouchEnd}
+      >
         {/* Welcome message - only show when there are goals */}
         {goals.length > 0 && (
           <div className="mb-6">
