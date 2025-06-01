@@ -163,31 +163,6 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
     setLongPressTimer(timer);
   };
   
-  // Handle pointer up event
-  const handlePointerUp = () => {
-    // Mark pointer as up
-    isPointerDown.current = false;
-    
-    // Clear long press timer
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-    
-    // Reset long press state
-    setIsLongPress(false);
-  };
-  
-  // Handle pointer leave event
-  const handlePointerLeave = () => {
-    isPointerDown.current = false;
-    
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-  };
-  
   // Handle session completion
   const handleSessionComplete = () => {
     setShowSessionTimer(false);
