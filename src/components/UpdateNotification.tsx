@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { updateSW } from '../main';
 
 // Keys for storing update-related information
 const LAST_SKIPPED_UPDATE_KEY = 'last_skipped_update_timestamp';
@@ -111,52 +110,48 @@ const UpdateNotification: React.FC = () => {
   // Handle the update now button click
   const handleUpdate = async () => {
     try {
-      // Update the current app version in localStorage
-      // This ensures we know the user has the latest version after update
       localStorage.setItem(CURRENT_APP_VERSION_KEY, APP_VERSION);
-      
-      // First try the updateSW function
-      if (updateSW && typeof updateSW === 'function') {
-        updateSW(true);
-        
-        // Add a small delay before reloading to ensure the service worker has time to activate
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        // Fallback approach: Get all service worker registrations
-        if ('serviceWorker' in navigator) {
-          // Get the registration
-          const registration = await navigator.serviceWorker.ready;
-          
-          // If there's a waiting service worker, tell it to skip waiting
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
-          
-          // Force update check
-          await registration.update();
-          
-          // Send message to any active service worker
-          if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-          }
-          
-          // Reload the page after a short delay
+      let triedReload = false;
+      // Wait for the service worker to activate before reloading
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          // Wait for activation
+          registration.waiting.addEventListener('statechange', (e: any) => {
+            if (e.target.state === 'activated' && !triedReload) {
+              triedReload = true;
+              window.location.reload();
+            }
+          });
+          // Fallback: reload after 2s if not already reloaded
           setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+            if (!triedReload) {
+              triedReload = true;
+              window.location.reload();
+            }
+          }, 2000);
         } else {
-          // If service workers aren't supported, just reload
+          // No waiting SW, just reload
           window.location.reload();
         }
+      } else {
+        // No SW support, just reload
+        window.location.reload();
       }
     } catch (error) {
       console.error('Error updating service worker:', error);
-      // If all else fails, just reload the page
       window.location.reload();
     }
   };
+
+  // Fallback: If reload lands on a 404, show a friendly retry message
+  useEffect(() => {
+    if (window.location.pathname !== '/' && document.title.includes('404')) {
+      // Replace body with fallback UI
+      document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;"><h2>Update Failed</h2><p>Something went wrong while updating. Please <a href='/' style='color:blue;text-decoration:underline;'>tap here to reload the app</a>.</p></div>`;
+    }
+  }, []);
   
   // Handle the skip for now button click
   const handleSkip = () => {
