@@ -28,6 +28,7 @@ interface GoalContextType {
   sortMethod: SortMethod;
   setSortMethod: (method: SortMethod) => void;
   updateGoalOrder: (goalId: string, newOrder: number) => Promise<void>;
+  fetchGoals: (showLoadingIndicator?: boolean) => Promise<void>;
 }
 
 const GoalContext = createContext<GoalContextType>({
@@ -54,6 +55,9 @@ const GoalContext = createContext<GoalContextType>({
   sortMethod: 'newest',
   setSortMethod: () => {},
   updateGoalOrder: async () => {
+    throw new Error('Not implemented');
+  },
+  fetchGoals: async () => {
     throw new Error('Not implemented');
   }
 });
@@ -321,7 +325,8 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
         setShowInactive,
         sortMethod,
         setSortMethod,
-        updateGoalOrder
+        updateGoalOrder,
+        fetchGoals
       }}
     >
       {children}

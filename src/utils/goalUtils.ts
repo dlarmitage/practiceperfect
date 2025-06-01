@@ -10,6 +10,12 @@ export const calculateGoalStatus = (goal: Goal): GoalStatus => {
   const now = new Date();
   const startDate = new Date(goal.startDate);
   
+  // If the goal is completed, return active status regardless of other conditions
+  // This ensures completed goals don't get marked as past-due or out-of-cadence
+  if (goal.completed) {
+    return 'active';
+  }
+  
   // If the goal hasn't started yet (future start date)
   if (startDate > now) {
     return 'not-started';
@@ -34,7 +40,7 @@ export const calculateGoalStatus = (goal: Goal): GoalStatus => {
     const endOfDueDay = new Date(year, month, day, 23, 59, 59);
     
     if (endOfDueDay < now) {
-      return 'past-due';
+      return 'past-due'; // Past due status takes precedence over cadence status
     }
   }
   
@@ -93,16 +99,16 @@ export const isGoalOutOfCadence = (
   // Calculate expected progress based on time elapsed and cadence
   switch (cadence) {
     case 'hourly': {
-      // For hourly goals, check how many hours have passed since last interaction
-      const hoursSinceLastUpdate = (now.getTime() - lastInteraction.getTime()) / (60 * 60 * 1000);
+      // For hourly goals, check how many minutes have passed since last interaction
+      const minutesSinceLastUpdate = (now.getTime() - lastInteraction.getTime()) / (60 * 1000);
       
-      // Calculate expected count by now based on target per hour
-      // If target is 5 per hour, and 2 hours passed, expected count would be current + 10
-      const expectedProgressPerHour = targetCount;
-      const expectedAdditionalProgress = Math.floor(hoursSinceLastUpdate * expectedProgressPerHour);
+      // Calculate how many minutes should pass before the goal is out of cadence
+      // If target is 60 per hour, we expect 1 every minute, so threshold is 1 minute
+      // If target is 6 per hour, we expect 1 every 10 minutes, so threshold is 10 minutes
+      const minutesPerExpectedProgress = 60 / targetCount;
       
-      // If no progress has been made in the time frame where we expect progress, it's out of cadence
-      return expectedAdditionalProgress > 0;
+      // Goal is out of cadence if more time has passed than we allow between expected progress
+      return minutesSinceLastUpdate > minutesPerExpectedProgress;
     }
       
     case 'daily': {
@@ -235,5 +241,96 @@ export const formatCadence = (cadence: Cadence): string => {
       // Convert the cadence to string to ensure we can use string methods
       const cadenceStr = String(cadence);
       return cadenceStr.charAt(0).toUpperCase() + cadenceStr.slice(1);
+  }
+};
+
+/**
+ * Calculates the expected number of practice events that should have occurred
+ * between the start date and either the due date or current time (whichever is earlier)
+ * based on the goal's cadence and target count.
+ * 
+ * @param startDate - The start date of the goal
+ * @param cadence - The practice cadence of the goal
+ * @param targetCount - The target count per cadence period
+ * @param dueDate - Optional due date of the goal
+ * @returns The total number of practice events that should have occurred
+ */
+export const calculateExpectedPracticeEvents = (
+  startDate: string | Date,
+  cadence: Cadence,
+  targetCount: number,
+  dueDate?: string | Date | null
+): number => {
+  // Convert startDate to Date object if it's a string
+  const start = typeof startDate === 'string' ? new Date(startDate) : new Date(startDate);
+  
+
+  
+  // Set start time to 12:01 AM on the start date
+  const startTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 1, 0, 0);
+  
+  // Get current time
+  const now = new Date();
+  
+  // Determine end date (due date at midnight or current time, whichever is earlier)
+  let endTime = now;
+  
+  if (dueDate) {
+    // Convert dueDate to Date object if it's a string
+    const dueDateObj = typeof dueDate === 'string' ? new Date(dueDate) : new Date(dueDate);
+    
+    // Set due date to end of day (11:59:59 PM)
+    const endOfDueDay = new Date(dueDateObj.getFullYear(), dueDateObj.getMonth(), dueDateObj.getDate(), 23, 59, 59, 999);
+    
+    // Use the earlier of now or due date
+    if (endOfDueDay < now) {
+      endTime = endOfDueDay;
+    }
+  }
+  
+  // If the start date is in the future, no events should have occurred
+  if (startTime > endTime) {
+    return 0;
+  }
+  
+  // Calculate expected events based on cadence
+  switch (cadence) {
+    case 'hourly': {
+      // Calculate minutes between start and end time
+      const minutesDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+      // Calculate expected events (accurate to the minute)
+      const expected = Math.floor(minutesDiff * (targetCount / 60));
+      // Debug log
+      console.log('[Hourly] Start:', startTime.toLocaleString(), 'End:', endTime.toLocaleString(), 'Minutes:', minutesDiff, 'Expected:', expected);
+      return expected;
+    }
+    
+    case 'daily': {
+      // Calculate days between start and end time
+      const daysDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24);
+      return Math.floor(daysDiff * targetCount);
+    }
+    
+    case 'weekly': {
+      // Calculate weeks between start and end time
+      const weeksDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24 * 7);
+      return Math.floor(weeksDiff * targetCount);
+    }
+    
+    case 'monthly': {
+      // Calculate full months between dates
+      let months = (endTime.getFullYear() - startTime.getFullYear()) * 12;
+      months += endTime.getMonth() - startTime.getMonth();
+      
+      // Adjust for partial months based on day of month
+      if (endTime.getDate() < startTime.getDate()) {
+        months--;
+      }
+      
+      return Math.max(0, months * targetCount);
+    }
+    
+    default:
+      return 0;
   }
 };

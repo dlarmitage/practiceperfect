@@ -26,6 +26,7 @@ const Home: React.FC = () => {
     incrementGoalCount, 
     decrementGoalCount,
     deleteGoal,
+    fetchGoals,
     showInactive,
     setShowInactive,
     sortMethod,
@@ -35,6 +36,8 @@ const Home: React.FC = () => {
   const { setActiveGoalId } = useSession();
   
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
+  // Add ref to track when to update goal statuses (without affecting welcome message)
+  const statusUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   // Removed unused isLoading state
@@ -142,13 +145,22 @@ const Home: React.FC = () => {
   // This effect runs only after goals are fully loaded and initialDataLoaded is true
   // Using a ref to track if we've already set the welcome message
   const welcomeMessageSet = useRef(false);
+  // Store the goals length to avoid unnecessary welcome message updates
+  const goalsLengthRef = useRef(0);
   
   useEffect(() => {
     // Only set the welcome message when we're sure goals are loaded and initialDataLoaded is true
-    // And only if we haven't already set it (using the ref to track this)
-    if (initialDataLoaded && !goalsLoading && user && !welcomeMessageSet.current) {
-      // Set the ref to true to prevent multiple welcome message generations
+    // And only if we haven't already set it OR if the goals array length has changed (new user, first goal)
+    const shouldUpdateWelcomeMessage = 
+      initialDataLoaded && 
+      !goalsLoading && 
+      user && 
+      (!welcomeMessageSet.current || goalsLengthRef.current !== goals.length);
+    
+    if (shouldUpdateWelcomeMessage) {
+      // Update our refs to track state
       welcomeMessageSet.current = true;
+      goalsLengthRef.current = goals.length;
       
       // Wait a bit to ensure all data processing is complete
       const timer = setTimeout(() => {
@@ -163,8 +175,139 @@ const Home: React.FC = () => {
     return () => {
       welcomeMessageSet.current = false;
     };
-  }, [initialDataLoaded, goals, goalsLoading, user, motivationalMessages]);
-
+  }, [initialDataLoaded, goalsLoading, user, motivationalMessages]);
+  
+  // This effect sets up event-driven goal status updates that only trigger when needed
+  useEffect(() => {
+    // Only set up if we have goals and the user is logged in
+    if (goals.length === 0 || !user || isFormOpen) return;
+    
+    // Flag to prevent multiple simultaneous checks
+    let isCheckingGoals = false;
+    
+    // Track goals that need status updates and when they should update
+    const goalUpdateTimes: {[goalId: string]: {goal: Goal, updateTime: number}} = {};
+    
+    // Calculate next update time for each goal based on its cadence
+    goals.forEach(goal => {
+      // Skip completed goals or inactive goals
+      if (goal.completed || !goal.isActive) return;
+      
+      // Calculate when this goal should next update its status
+      let nextUpdateTime: number | null = null;
+      
+      if (goal.cadence === 'hourly' && goal.targetCount > 0) {
+        // For hourly goals, calculate exact time when it will be out of cadence
+        const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
+        const minutesPerUpdate = 60 / goal.targetCount;
+        const msUntilOutOfCadence = minutesPerUpdate * 60 * 1000;
+        nextUpdateTime = lastInteraction.getTime() + msUntilOutOfCadence;
+      } 
+      else if (goal.cadence === 'daily' && goal.targetCount > 0) {
+        // For daily goals
+        const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
+        const hoursPerUpdate = 24 / goal.targetCount;
+        const msUntilOutOfCadence = hoursPerUpdate * 60 * 60 * 1000;
+        nextUpdateTime = lastInteraction.getTime() + msUntilOutOfCadence;
+      }
+      else if (goal.cadence === 'weekly' && goal.targetCount > 0) {
+        // For weekly goals
+        const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
+        const daysPerUpdate = 7 / goal.targetCount;
+        const msUntilOutOfCadence = daysPerUpdate * 24 * 60 * 60 * 1000;
+        nextUpdateTime = lastInteraction.getTime() + msUntilOutOfCadence;
+      }
+      
+      // If we calculated a valid update time, store it
+      if (nextUpdateTime !== null) {
+        // Only add goals that will need updates in the future
+        // This prevents immediate re-checking of already out-of-cadence goals
+        if (nextUpdateTime > new Date().getTime()) {
+          goalUpdateTimes[goal.id] = {
+            goal,
+            updateTime: nextUpdateTime
+          };
+        }
+      }
+    });
+    
+    // Function to check and update goal statuses
+    const checkAndUpdateGoals = async () => {
+      // Prevent concurrent checks
+      if (isCheckingGoals) return;
+      isCheckingGoals = true;
+      
+      try {
+        const now = new Date().getTime();
+        console.log('Checking goal statuses at:', new Date().toISOString());
+        let nextCheckTime = Infinity;
+        let goalsUpdated = false;
+        
+        // Check each goal to see if it needs updating
+        Object.entries(goalUpdateTimes).forEach(([goalId, {updateTime}]) => {
+          // If it's time to update this goal's status
+          if (updateTime <= now) {
+            // Find the DOM element for this goal
+            const element = document.querySelector(`.goal-item[data-goal-id="${goalId}"]`);
+            if (element) {
+              // Update the element's class to show it's out of cadence
+              element.classList.add('out-of-cadence');
+              element.classList.remove('active');
+            }
+            
+            // Remove this goal from our tracking (it's already updated)
+            delete goalUpdateTimes[goalId];
+            goalsUpdated = true;
+          } else {
+            // This goal needs to be updated in the future
+            // Track the earliest update time for our next check
+            nextCheckTime = Math.min(nextCheckTime, updateTime);
+          }
+        });
+        
+        // If any goals were updated, refresh the data
+        if (goalsUpdated) {
+          // Refresh data without showing loading indicator
+          try {
+            console.log('Refreshing goals data at:', new Date().toISOString());
+            await fetchGoals(false);
+            console.log('Goals refreshed due to cadence update');
+          } catch (error) {
+            console.error('Failed to refresh goals after cadence update:', error);
+          }
+        }
+        
+        // Schedule the next check if there are more goals to update
+        if (nextCheckTime !== Infinity) {
+          const timeUntilNextCheck = Math.max(nextCheckTime - now, 30000); // At least 30 seconds
+          console.log(`Next check scheduled in ${timeUntilNextCheck/1000} seconds`);
+          
+          // Clear any existing timer
+          if (statusUpdateTimerRef.current) {
+            clearTimeout(statusUpdateTimerRef.current);
+          }
+          
+          // Set a timeout for the exact time when the next goal needs updating
+          statusUpdateTimerRef.current = setTimeout(checkAndUpdateGoals, timeUntilNextCheck);
+        } else {
+          console.log('No more goals to check, stopping timer');
+        }
+      } finally {
+        // Always release the lock when done
+        isCheckingGoals = false;
+      }
+    };
+    
+    // Start the initial check
+    checkAndUpdateGoals();
+    
+    return () => {
+      // Clean up any pending timeout
+      if (statusUpdateTimerRef.current) {
+        clearTimeout(statusUpdateTimerRef.current);
+      }
+    };
+  }, [goals, user, isFormOpen, fetchGoals]);
 
   const handleGoalClick = async (goalId: string) => {
     try {
