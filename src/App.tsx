@@ -20,6 +20,51 @@ import AuthenticatedRoutes from './components/AuthenticatedRoutes';
 import RootRedirect from './components/RootRedirect';
 
 function App() {
+  // Pull-to-refresh state
+  const [pullStartY, setPullStartY] = useState<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshThreshold = 60; // px
+
+  useEffect(() => {
+    let touchMove = false;
+    function onTouchStart(e: TouchEvent) {
+      if (window.scrollY === 0 && e.touches.length === 1) {
+        setPullStartY(e.touches[0].clientY);
+        setPullDistance(0);
+        touchMove = true;
+      }
+    }
+    function onTouchMove(e: TouchEvent) {
+      if (pullStartY !== null && touchMove) {
+        const distance = e.touches[0].clientY - pullStartY;
+        if (distance > 0) {
+          setPullDistance(distance);
+        }
+      }
+    }
+    function onTouchEnd() {
+      if (pullDistance > refreshThreshold && !isRefreshing) {
+        setIsRefreshing(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 150);
+      } else {
+        setPullDistance(0);
+        setPullStartY(null);
+        setIsRefreshing(false);
+      }
+      touchMove = false;
+    }
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [pullStartY, pullDistance, isRefreshing]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPWA, setIsPWA] = useState(false);
 
@@ -65,6 +110,26 @@ function App() {
         <GoalProvider>
           <SessionProvider>
             <div className="flex flex-col min-h-screen">
+              {/* Pull-to-refresh indicator */}
+              {pullDistance > 0 && (
+                <div style={{
+                  height: pullDistance > 80 ? 80 : pullDistance,
+                  transition: isRefreshing ? 'height 0.2s' : undefined,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#e0f2fe',
+                  color: '#0284c7',
+                  fontWeight: 600,
+                  fontSize: 16,
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1000,
+                  width: '100%',
+                }}>
+                  {isRefreshing ? 'Refreshing…' : pullDistance > refreshThreshold ? 'Release to refresh' : 'Pull down to refresh'}
+                </div>
+              )}
               <UpdateNotification />
               <Routes>
                 {/* Root route with smart redirection */}
