@@ -181,7 +181,47 @@ export const formatDate = (dateString?: string): string => {
 /**
  * Returns Tailwind classes for background and text color based on goal status
  */
-export function getGoalStatusColor(goal: Goal): { bg: string; text: string } {
+export function getGoalStatusColor(goal: Goal | string): { bg: string; text: string } {
+  if (typeof goal === 'string') {
+    // Accept status string directly
+    switch (goal) {
+      case 'active':
+        return {
+          bg: 'bg-gradient-to-br from-green-400/80 to-green-600/90 border-green-400',
+          text: 'text-white',
+        };
+      case 'not-started':
+        return {
+          bg: 'bg-gradient-to-br from-gray-700 to-gray-900 border-gray-700',
+          text: 'text-white',
+        };
+      case 'out-of-cadence':
+        return {
+          bg: 'bg-gradient-to-br from-orange-400/90 to-orange-600/90 border-orange-400',
+          text: 'text-white',
+        };
+      case 'past-due':
+        return {
+          bg: 'bg-gradient-to-br from-purple-500/90 to-purple-700/90 border-purple-500',
+          text: 'text-white',
+        };
+      case 'completed':
+        return {
+          bg: 'bg-gradient-to-br from-blue-500/70 to-blue-700/80 border-blue-400',
+          text: 'text-white',
+        };
+      case 'inactive':
+        return {
+          bg: 'bg-gradient-to-br from-gray-400/80 to-gray-600/90 border-gray-400',
+          text: 'text-white',
+        };
+      default:
+        return {
+          bg: 'bg-gradient-to-br from-gray-300 to-gray-400 border-gray-300',
+          text: 'text-gray-900',
+        };
+    }
+  }
   // If goal is inactive, return grey color regardless of other status
   if (!goal.isActive) {
     return {
@@ -189,7 +229,6 @@ export function getGoalStatusColor(goal: Goal): { bg: string; text: string } {
       text: 'text-white',
     };
   }
-  
   if (goal.completed) {
     return {
       bg: 'bg-gradient-to-br from-blue-500/70 to-blue-700/80 border-blue-400',
@@ -197,34 +236,7 @@ export function getGoalStatusColor(goal: Goal): { bg: string; text: string } {
     };
   }
   const status = calculateGoalStatus(goal);
-  switch (status) {
-    case 'active':
-      return {
-        bg: 'bg-gradient-to-br from-green-400/80 to-green-600/90 border-green-400',
-        text: 'text-white',
-      };
-    case 'not-started':
-      return {
-        bg: 'bg-gradient-to-br from-gray-700 to-gray-900 border-gray-700',
-        text: 'text-white',
-      };
-    case 'out-of-cadence':
-      return {
-        bg: 'bg-gradient-to-br from-orange-400/90 to-orange-600/90 border-orange-400',
-        text: 'text-white',
-      };
-    case 'past-due':
-      return {
-        bg: 'bg-gradient-to-br from-purple-500/90 to-purple-700/90 border-purple-500',
-        text: 'text-white',
-      };
-
-    default:
-      return {
-        bg: 'bg-gradient-to-br from-gray-300 to-gray-400 border-gray-300',
-        text: 'text-gray-900',
-      };
-  }
+  return getGoalStatusColor(status);
 }
 
 export const formatCadence = (cadence: Cadence): string => {
@@ -261,76 +273,125 @@ export const calculateExpectedPracticeEvents = (
   targetCount: number,
   dueDate?: string | Date | null
 ): number => {
-  // Convert startDate to Date object if it's a string
-  const start = typeof startDate === 'string' ? new Date(startDate) : new Date(startDate);
+  // Parse dates properly accounting for timezone
+  let startDateObj: Date;
+  if (typeof startDate === 'string') {
+    // Extract date parts from the string (assuming format YYYY-MM-DD or MM/DD/YYYY)
+    const parts = startDate.includes('-') 
+      ? startDate.split('T')[0].split('-') 
+      : startDate.split('T')[0].split('/');
+    
+    // If MM/DD/YYYY format
+    if (parts[0].length <= 2) {
+      // Create date in local timezone (month is 0-indexed in JS Date)
+      startDateObj = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+    } else {
+      // YYYY-MM-DD format
+      startDateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    }
+  } else {
+    startDateObj = new Date(startDate);
+  }
   
-
-  
-  // Set start time to 12:01 AM on the start date
-  const startTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 1, 0, 0);
+  // Ensure we're using the start of the day in local timezone
+  startDateObj.setHours(0, 0, 0, 0);
   
   // Get current time
   const now = new Date();
   
-  // Determine end date (due date at midnight or current time, whichever is earlier)
+  // Determine end time (due date or current time, whichever is earlier)
   let endTime = now;
-  
   if (dueDate) {
-    // Convert dueDate to Date object if it's a string
-    const dueDateObj = typeof dueDate === 'string' ? new Date(dueDate) : new Date(dueDate);
+    let dueDateObj: Date;
+    if (typeof dueDate === 'string') {
+      // Extract date parts from the string (assuming format YYYY-MM-DD or MM/DD/YYYY)
+      const parts = dueDate.includes('-') 
+        ? dueDate.split('T')[0].split('-') 
+        : dueDate.split('T')[0].split('/');
+      
+      // If MM/DD/YYYY format
+      if (parts[0].length <= 2) {
+        // Create date in local timezone (month is 0-indexed in JS Date)
+        dueDateObj = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+      } else {
+        // YYYY-MM-DD format
+        dueDateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      }
+    } else {
+      dueDateObj = new Date(dueDate);
+    }
     
-    // Set due date to end of day (11:59:59 PM)
-    const endOfDueDay = new Date(dueDateObj.getFullYear(), dueDateObj.getMonth(), dueDateObj.getDate(), 23, 59, 59, 999);
+    // Set to end of day
+    dueDateObj.setHours(23, 59, 59, 999);
     
-    // Use the earlier of now or due date
-    if (endOfDueDay < now) {
-      endTime = endOfDueDay;
+    if (dueDateObj < now) {
+      endTime = dueDateObj;
     }
   }
   
   // If the start date is in the future, no events should have occurred
-  if (startTime > endTime) {
+  if (startDateObj > endTime) {
     return 0;
   }
   
-  // Calculate expected events based on cadence
+  // Simple calculation based on cadence as described by the user
+  let expectedEvents = 0;
+  
   switch (cadence) {
     case 'hourly': {
-      // Calculate minutes between start and end time
-      const minutesDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
-      // Calculate expected events (accurate to the minute)
-      const expected = Math.floor(minutesDiff * (targetCount / 60));
-      // Debug log
-      console.log('[Hourly] Start:', startTime.toLocaleString(), 'End:', endTime.toLocaleString(), 'Minutes:', minutesDiff, 'Expected:', expected);
-      return expected;
+      // For hourly cadence: elapsed minutes / 60 * targetCount
+      const elapsedMinutes = (endTime.getTime() - startDateObj.getTime()) / (1000 * 60);
+      expectedEvents = Math.floor(elapsedMinutes / 60 * targetCount);
+      
+      console.log('HOURLY CALCULATION:');
+      console.log('Start Date:', startDateObj.toLocaleString());
+      console.log('End Time:', endTime.toLocaleString());
+      console.log('Elapsed Minutes:', elapsedMinutes);
+      console.log('Expected Events:', expectedEvents);
+      break;
     }
     
     case 'daily': {
-      // Calculate days between start and end time
-      const daysDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24);
-      return Math.floor(daysDiff * targetCount);
+      // For daily cadence: elapsed hours / 24 * targetCount
+      // Special case for targetCount=24 (hourly)
+      if (targetCount === 24) {
+        // Calculate hours since midnight of start date
+        const elapsedHours = Math.floor((endTime.getTime() - startDateObj.getTime()) / (1000 * 60 * 60));
+        expectedEvents = elapsedHours;
+        
+        console.log('DAILY CALCULATION (24 per day):');
+        console.log('Start Date:', startDateObj.toLocaleString());
+        console.log('Current Time:', endTime.toLocaleString());
+        console.log('Elapsed Hours:', elapsedHours);
+        console.log('Expected Events:', expectedEvents);
+      } else {
+        // For other daily targets
+        const elapsedHours = (endTime.getTime() - startDateObj.getTime()) / (1000 * 60 * 60);
+        expectedEvents = Math.floor(elapsedHours / 24 * targetCount);
+        
+        console.log('DAILY CALCULATION:');
+        console.log('Start Date:', startDateObj.toLocaleString());
+        console.log('End Time:', endTime.toLocaleString());
+        console.log('Elapsed Hours:', elapsedHours);
+        console.log('Expected Events:', expectedEvents);
+      }
+      break;
     }
     
     case 'weekly': {
-      // Calculate weeks between start and end time
-      const weeksDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24 * 7);
-      return Math.floor(weeksDiff * targetCount);
-    }
-    
-    case 'monthly': {
-      // Calculate full months between dates
-      let months = (endTime.getFullYear() - startTime.getFullYear()) * 12;
-      months += endTime.getMonth() - startTime.getMonth();
+      // For weekly cadence: elapsed days / 7 * targetCount
+      const elapsedDays = (endTime.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24);
+      expectedEvents = Math.floor(elapsedDays / 7 * targetCount);
       
-      // Adjust for partial months based on day of month
-      if (endTime.getDate() < startTime.getDate()) {
-        months--;
-      }
-      
-      return Math.max(0, months * targetCount);
+      console.log('WEEKLY CALCULATION:');
+      console.log('Start Date:', startDateObj.toLocaleString());
+      console.log('End Time:', endTime.toLocaleString());
+      console.log('Elapsed Days:', elapsedDays);
+      console.log('Expected Events:', expectedEvents);
+      break;
     }
-    
-    default:
-      return 0;
   }
+  
+  return expectedEvents;
 };
+

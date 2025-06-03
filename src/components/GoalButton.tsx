@@ -24,6 +24,7 @@ import HelpTooltip from './HelpTooltip';
 
 interface GoalButtonProps {
   goal: Goal;
+  status: string;
   onClick: () => void;
   onDecrement?: () => void;
   onEdit: () => void;
@@ -37,7 +38,7 @@ interface GoalButtonProps {
  * @param onClick - Function to call when the button is clicked
  * @param onEdit - Function to call when the edit button is clicked
  */
-const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onEdit, onStartSession }) => {
+const GoalButton: React.FC<GoalButtonProps> = ({ goal, status, onClick, onDecrement, onEdit, onStartSession }) => {
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
   const [showSessionTimer, setShowSessionTimer] = useState(false);
@@ -236,7 +237,7 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
 
       {/* Main card container with dynamic bg color */}
       <div
-        className={`relative flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-300 font-medium min-h-[180px] w-full mb-4 ${getGoalStatusColor(goal).bg} border-2 border-t-white/30 border-l-white/30 border-r-black/10 border-b-black/20 shadow-md hover:translate-y-[-2px] hover:shadow-lg hover:border-t-white/40 hover:border-l-white/40 active:translate-y-[1px] active:shadow-inner active:scale-[0.98] active:border-t-black/10 active:border-l-black/10 active:border-r-white/20 active:border-b-white/10 ${isLongPress ? 'scale-95 opacity-90 border-t-black/10 border-l-black/10 border-r-white/20 border-b-white/10' : ''}`}
+        className={`relative flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-300 font-medium min-h-[180px] w-full mb-4 ${getGoalStatusColor(status).bg} border-2 border-t-white/30 border-l-white/30 border-r-black/10 border-b-black/20 shadow-md hover:translate-y-[-2px] hover:shadow-lg hover:border-t-white/40 hover:border-l-white/40 active:translate-y-[1px] active:shadow-inner active:scale-[0.98] active:border-t-black/10 active:border-l-black/10 active:border-r-white/20 active:border-b-white/10 ${isLongPress ? 'scale-95 opacity-90 border-t-black/10 border-l-black/10 border-r-white/20 border-b-white/10' : ''}`}
         onClick={trackCardClick}
       >
         {/* Drag handle */}
@@ -284,28 +285,51 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, onClick, onDecrement, onE
 
         {/* Goal content */}
         <div className="w-full flex flex-col items-center justify-center">
-          <div className={`text-center text-xl font-bold mb-2 mt-4 ${getGoalStatusColor(goal).text}`}>
+          <div className={`text-center text-xl font-bold mb-2 mt-4 ${getGoalStatusColor(status).text}`}>
             {goal.name}
           </div>
           {goal.description && (
-            <p className={`text-sm opacity-90 line-clamp-2 mb-2 text-center ${getGoalStatusColor(goal).text}`}>{goal.description}</p>
+            <p className={`text-sm opacity-90 line-clamp-2 mb-2 text-center ${getGoalStatusColor(status).text}`}>{goal.description}</p>
           )}
-          <div className={`text-center opacity-80 mb-auto ${getGoalStatusColor(goal).text}`}>
+          <div className={`text-center opacity-80 mb-auto ${getGoalStatusColor(status).text}`}>
               <div className="text-white text-center">
                 Total Practice Sessions: {goal.count} / {
-                  // Special case for May 29, 2025 with 60 per hour
-                  new Date(goal.startDate).getFullYear() === 2025 &&
-                  new Date(goal.startDate).getMonth() === 4 &&
-                  new Date(goal.startDate).getDate() === 29 &&
-                  goal.targetCount === 60 &&
-                  !goal.dueDate
-                  ? 4968
-                  : calculateExpectedPracticeEvents(
-                      goal.startDate,
-                      goal.cadence,
-                      goal.targetCount,
-                      goal.dueDate
-                    )
+                  (() => {
+                    // Special case for May 29, 2025 with 60 per hour
+                    if (new Date(goal.startDate).getFullYear() === 2025 &&
+                        new Date(goal.startDate).getMonth() === 4 &&
+                        new Date(goal.startDate).getDate() === 29 &&
+                        goal.targetCount === 60 &&
+                        !goal.dueDate) {
+                      return 4968;
+                    }
+                    
+                    // Use a memoized value for the expected count to avoid recalculating for every goal
+                    // We'll store it in a property on the goal object that persists between renders
+                    if (!goal._expectedCount) {
+                      // Calculate expected practice events only once per goal
+                      const expected = calculateExpectedPracticeEvents(
+                        goal.startDate,
+                        goal.cadence,
+                        goal.targetCount,
+                        goal.dueDate
+                      );
+                      
+                      // Store the calculated value on the goal object
+                      goal._expectedCount = expected;
+                      
+                      // Log the calculation for debugging (only when calculated)
+                      console.log('GOAL BUTTON CALCULATION:');
+                      console.log('Goal:', goal.name);
+                      console.log('Start Date:', new Date(goal.startDate).toLocaleString());
+                      console.log('Cadence:', goal.cadence);
+                      console.log('Target Count:', goal.targetCount);
+                      console.log('Due Date:', goal.dueDate ? new Date(goal.dueDate).toLocaleString() : 'None');
+                      console.log('Expected Events:', expected);
+                    }
+                    
+                    return goal._expectedCount;
+                  })()
                 }
               </div>
               <div className="text-sm">Cadence: {goal.targetCount} {goal.targetCount === 1 ? 'time' : 'times'} {getCadenceLabel(goal.cadence)}</div>

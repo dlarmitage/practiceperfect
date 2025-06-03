@@ -37,6 +37,7 @@ export interface Goal {
   createdAt: string;
   updatedAt: string;
   lastClicked?: string; // ISO date string for the last time the goal was clicked
+  _expectedCount?: number; // Cached expected count to avoid recalculation
 }
 
 // User type
