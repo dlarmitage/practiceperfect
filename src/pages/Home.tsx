@@ -10,8 +10,9 @@ import GoalForm from '../components/GoalForm';
 import ConfirmationModal from '../components/ConfirmationModal';
 import PositionSelectModal from '../components/PositionSelectModal';
 // import { generateWelcomeMessage } from '../services/openai'; // Commented out to eliminate OpenAI costs
-import PWAInstallModal from '../components/PWAInstallModal';
+// import PWAInstallModal from '../components/PWAInstallModal';
 import { isRunningAsPWA } from '../utils/deviceDetection';
+import { calculateGoalStatus } from '../utils/goalUtils';
 
 /**
  * Home page component displaying the user's goals
@@ -28,7 +29,6 @@ const Home: React.FC = () => {
     deleteGoal,
     fetchGoals,
     showInactive,
-    setShowInactive,
     sortMethod,
     setSortMethod,
     updateGoalOrder
@@ -38,6 +38,8 @@ const Home: React.FC = () => {
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   // Add ref to track when to update goal statuses (without affecting welcome message)
   const statusUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track per-goal status for efficient re-render
+  const [goalStatuses, setGoalStatuses] = useState<Record<string, string>>({});
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   // Removed unused isLoading state
@@ -46,8 +48,8 @@ const Home: React.FC = () => {
   const [dragOverGoal, setDragOverGoal] = useState<Goal | null>(null);
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [currentPosition] = useState(0); // setCurrentPosition is unused
-  const [isPWA, setIsPWA] = useState(false);
-  const [showPWAPrompt, setShowPWAPrompt] = useState(false);
+  const setIsPWA = useState(false)[1];
+  const setShowPWAPrompt = useState(false)[1];
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   
   // Ref to track if we're currently reordering goals
@@ -233,70 +235,60 @@ const Home: React.FC = () => {
     
     // Function to check and update goal statuses
     const checkAndUpdateGoals = async () => {
-      // Prevent concurrent checks
       if (isCheckingGoals) return;
       isCheckingGoals = true;
-      
       try {
-        const now = new Date().getTime();
-        console.log('Checking goal statuses at:', new Date().toISOString());
+        const now = new Date();
         let nextCheckTime = Infinity;
-        let goalsUpdated = false;
-        
-        // Check each goal to see if it needs updating
-        Object.entries(goalUpdateTimes).forEach(([goalId, {updateTime}]) => {
-          // If it's time to update this goal's status
-          if (updateTime <= now) {
-            // Find the DOM element for this goal
-            const element = document.querySelector(`.goal-item[data-goal-id="${goalId}"]`);
-            if (element) {
-              // Update the element's class to show it's out of cadence
-              element.classList.add('out-of-cadence');
-              element.classList.remove('active');
-            }
-            
-            // Remove this goal from our tracking (it's already updated)
-            delete goalUpdateTimes[goalId];
-            goalsUpdated = true;
+        let updatedStatuses: Record<string, string> = { ...goalStatuses };
+        let changed = false;
+        goals.forEach(goal => {
+          let newStatus = '';
+          if (!goal.isActive) {
+            newStatus = 'inactive';
+          } else if (goal.completed) {
+            newStatus = 'completed';
           } else {
-            // This goal needs to be updated in the future
-            // Track the earliest update time for our next check
-            nextCheckTime = Math.min(nextCheckTime, updateTime);
+            newStatus = calculateGoalStatus(goal);
+          }
+          if (goalStatuses[goal.id] !== newStatus) {
+            updatedStatuses[goal.id] = newStatus;
+            changed = true;
+          }
+          // Calculate next update time for active, non-completed goals
+          let nextUpdate: number | null = null;
+          if (goal.isActive && !goal.completed) {
+            if (goal.cadence === 'hourly' && goal.targetCount > 0) {
+              const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
+              const minutesPerUpdate = 60 / goal.targetCount;
+              nextUpdate = lastInteraction.getTime() + minutesPerUpdate * 60 * 1000;
+            } else if (goal.cadence === 'daily' && goal.targetCount > 0) {
+              const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
+              const hoursPerUpdate = 24 / goal.targetCount;
+              nextUpdate = lastInteraction.getTime() + hoursPerUpdate * 60 * 60 * 1000;
+            } else if (goal.cadence === 'weekly' && goal.targetCount > 0) {
+              const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
+              const daysPerUpdate = 7 / goal.targetCount;
+              nextUpdate = lastInteraction.getTime() + daysPerUpdate * 24 * 60 * 60 * 1000;
+            }
+            if (nextUpdate && nextUpdate > now.getTime()) {
+              nextCheckTime = Math.min(nextCheckTime, nextUpdate);
+            }
           }
         });
-        
-        // If any goals were updated, refresh the data
-        if (goalsUpdated) {
-          // Refresh data without showing loading indicator
-          try {
-            console.log('Refreshing goals data at:', new Date().toISOString());
-            await fetchGoals(false);
-            console.log('Goals refreshed due to cadence update');
-          } catch (error) {
-            console.error('Failed to refresh goals after cadence update:', error);
-          }
+        if (changed) {
+          setGoalStatuses(updatedStatuses);
         }
-        
-        // Schedule the next check if there are more goals to update
         if (nextCheckTime !== Infinity) {
-          const timeUntilNextCheck = Math.max(nextCheckTime - now, 30000); // At least 30 seconds
-          console.log(`Next check scheduled in ${timeUntilNextCheck/1000} seconds`);
-          
-          // Clear any existing timer
-          if (statusUpdateTimerRef.current) {
-            clearTimeout(statusUpdateTimerRef.current);
-          }
-          
-          // Set a timeout for the exact time when the next goal needs updating
-          statusUpdateTimerRef.current = setTimeout(checkAndUpdateGoals, timeUntilNextCheck);
-        } else {
-          console.log('No more goals to check, stopping timer');
+          const ms = Math.max(nextCheckTime - now.getTime(), 30 * 1000);
+          if (statusUpdateTimerRef.current) clearTimeout(statusUpdateTimerRef.current);
+          statusUpdateTimerRef.current = setTimeout(checkAndUpdateGoals, ms);
         }
       } finally {
-        // Always release the lock when done
         isCheckingGoals = false;
       }
     };
+
     
     // Start the initial check
     checkAndUpdateGoals();
@@ -330,10 +322,10 @@ const Home: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleCreateGoal = () => {
-    setSelectedGoal(null);
-    setIsFormOpen(true);
-  };
+  // const handleCreateGoal = () => {
+  //   setSelectedGoal(null);
+  //   setIsFormOpen(true);
+  // };
 
   // Define the type for goal form data
   type GoalFormData = Omit<Goal, 'id' | 'user_id' | 'createdAt' | 'updatedAt'>;
@@ -639,7 +631,7 @@ const Home: React.FC = () => {
   };
 
   // Pull-to-refresh state and refs
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const setIsRefreshing = useState(false)[1];
   const [pullDistance, setPullDistance] = useState(0);
   const mainRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number | null>(null);
@@ -705,191 +697,84 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <main
-        className="flex-1 overflow-y-auto px-2 sm:px-0"
+        className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-12"
         ref={mainRef}
         onTouchStart={handlePullTouchStart}
         onTouchMove={handlePullTouchMove}
         onTouchEnd={handlePullTouchEnd}
       >
-        {/* Welcome message - only show when there are goals */}
-        {goals.length > 0 && (
-          <div className="mb-6">
-            <p className="text-gray-600">{welcomeMessage}</p>
-          </div>
-        )}
-        
-        {/* PWA Installation Modal */}
-        {showPWAPrompt && !isPWA && (
-          <PWAInstallModal 
-            onClose={() => setShowPWAPrompt(false)}
-            onDontShowAgain={() => {
-              localStorage.setItem('pwa_install_dont_show_again', 'true');
-              setShowPWAPrompt(false);
-            }}
-          />
-        )}
-        
-        {/* Controls - only show when there are goals */}
-        {goals.length > 0 && (
-          <div className="flex justify-between items-center mb-6 space-x-2 overflow-x-auto">
-            {/* Left side controls */}
-            <div className="flex items-center flex-shrink-0">
-              <input
-                type="checkbox"
-                id="show-inactive"
-                checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
-                className="h-4 w-4 text-blue-600 rounded bg-white border border-gray-300 focus:ring-0 focus:outline-none appearance-none checked:border-blue-600"
-              />
-              <label htmlFor="show-inactive" className="ml-2 text-sm text-gray-700 whitespace-nowrap">
-                Show Inactive
-              </label>
-            </div>
-            
-            {/* Right side controls grouped together */}
-            <div className="flex items-center space-x-3 flex-shrink-0">
-              {/* Mobile-friendly sort toggle buttons */}
-              <div className="flex items-center flex-shrink-0">
-                <div className="flex border border-gray-300 rounded-md overflow-hidden shadow-sm">
-                  <button
-                    type="button"
-                    className={`px-2 py-1 text-xs sm:text-sm ${sortMethod === 'newest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    onClick={() => setSortMethod('newest')}
-                    aria-label="Sort by newest"
-                  >
-                    Newest
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-2 py-1 text-xs sm:text-sm border-l border-r border-gray-300 ${sortMethod === 'oldest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    onClick={() => setSortMethod('oldest')}
-                    aria-label="Sort by oldest"
-                  >
-                    Oldest
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-2 py-1 text-xs sm:text-sm ${sortMethod === 'custom' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-                    onClick={() => setSortMethod('custom')}
-                    aria-label="Sort by custom order"
-                  >
-                    Custom
-                  </button>
-                </div>
+        {initialDataLoaded && (
+          <div className="w-full">
+            {/* Welcome message */}
+            {welcomeMessage && (
+              <div className="text-center mt-4 mb-6">
+                <h2 className="text-xl font-medium text-gray-700">{welcomeMessage}</h2>
               </div>
-              
-              {/* Add Goal button */}
-              <button
-                onClick={handleCreateGoal}
-                className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 active:bg-blue-800 active:scale-95 transition-all"
-                aria-label="Add Goal"
-              >
-                {/* Plus icon always visible */}
-                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                
-                {/* Text only visible on larger screens */}
-                <span className="hidden sm:inline-block ml-2">Add Goal</span>
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Goals grid with loading state */}
-        {!initialDataLoaded ? (
-          <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          </div>
-        ) : filteredGoals.length === 0 ? (
-          <div className="p-8 bg-white rounded-lg shadow-sm border border-gray-200 text-center">
-            {goals.length === 0 ? (
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-gray-800">Welcome to Practice Perfect!</h3>
-                <p className="text-gray-600 max-w-md mx-auto text-lg">
-                  Track your practice goals and improve your skills with deliberate practice.
-                </p>
-                <div className="pt-2">
-                  <button
-                    onClick={handleCreateGoal}
-                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                  >
-                    <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    Create Your First Goal
-                  </button>
-                </div>
-                
-                <div className="mt-6 bg-blue-50 p-5 rounded-lg border border-blue-100 text-left max-w-lg mx-auto">
-                  <h4 className="font-medium text-blue-800 mb-3 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    How to use Practice Perfect:
-                  </h4>
-                  
-                  <ul className="text-sm text-gray-700 space-y-3">
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
-                        </svg>
-                      </div>
-                      <span><b>Quick tap</b> on a goal to quickly log that you practiced it</span>
-                    </li>
-                    
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                      </div>
-                      <span><b>Long press</b> on a goal to start a timed practice session</span>
-                    </li>
-                    
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                      </div>
-                      <span>Sessions track your practice duration, mood, and notes for better insights</span>
-                    </li>
-                    
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                        </svg>
-                      </div>
-                      <span>View your practice history in the Sessions tab</span>
-                    </li>
-                    
-                    <li className="flex items-start">
-                      <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                      </div>
-                      <span>Track your progress with charts and statistics in the Analysis tab</span>
-                    </li>
-                  </ul>
-                  
-                  <div className="mt-4 pt-3 border-t border-blue-100 text-center">
-                    <span className="text-blue-700 text-sm font-medium">Start by creating your first goal!</span>
-                  </div>
+            )}
+            
+            {/* Show help info only when there are no goals */}
+            {filteredGoals.length === 0 ? (
+              <div className="mt-6 bg-blue-50 p-5 rounded-lg border border-blue-100 text-left max-w-lg mx-auto">
+                <h4 className="font-medium text-blue-800 mb-3 flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  How to use Practice Perfect:
+                </h4>
+                <ul className="text-sm text-gray-700 space-y-3">
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"></path>
+                      </svg>
+                    </div>
+                    <span><b>Quick tap</b> on a goal to quickly log that you practiced it</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                    </div>
+                    <span><b>Long press</b> on a goal to start a timed practice session</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                      </svg>
+                    </div>
+                    <span>Sessions track your practice duration, mood, and notes for better insights</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                      </svg>
+                    </div>
+                    <span>View your practice history in the Sessions tab</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                      </svg>
+                    </div>
+                    <span>Track your progress with charts and statistics in the Analysis tab</span>
+                  </li>
+                </ul>
+                <div className="mt-4 pt-3 border-t border-blue-100 text-center">
+                  <span className="text-blue-700 text-sm font-medium">Start by creating your first goal!</span>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-600">
-                You don't have any active goals. Enable 'Show Inactive' to see your inactive goals.
+              <p className="text-gray-600 text-center">
+                {filteredGoals.length === 0 && "You don't have any active goals. Enable 'Show Inactive' to see your inactive goals."}
               </p>
             )}
           </div>
-        ) : (
+        )}
+        {initialDataLoaded && filteredGoals.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredGoals.map((goal) => (
               <div 
@@ -919,11 +804,13 @@ const Home: React.FC = () => {
                 >
                   <GoalButton
                     goal={goal}
+                    status={goalStatuses[goal.id] || ''}
                     onClick={() => handleGoalClick(goal.id)}
                     onDecrement={() => handleGoalDecrement(goal.id)}
                     onEdit={() => handleGoalEdit(goal)}
                     onStartSession={() => setActiveGoalId(goal.id)}
                   />
+
                 </div>
               </div>
             ))}

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Goal, Session } from '../types';
+import { calculateExpectedPracticeEvents } from '../utils/goalUtils';
 import type { SortMethod } from '../context/GoalContext';
 
 // Initialize Supabase client with extended session persistence
@@ -722,6 +723,16 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   if ('lastClicked' in updates) normalizedUpdates.last_clicked = updates.lastClicked;
   else if ('last_clicked' in updates) normalizedUpdates.last_clicked = updates.last_clicked;
   
+  // Track if any parameter affecting the expected count has changed
+  const hasCountAffectingChanges = 
+    'targetCount' in updates || 
+    'target_count' in updates || 
+    'startDate' in updates || 
+    'start_date' in updates || 
+    'dueDate' in updates || 
+    'due_date' in updates || 
+    'cadence' in updates;
+  
   // Copy any other properties directly
   for (const key in updates) {
     if (!['targetCount', 'isActive', 'startDate', 'dueDate', 'sortOrder', 'lastClicked'].includes(key) && 
@@ -771,6 +782,33 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     .single();
     
   console.log('Current goal before update:', currentGoal);
+  
+  // If parameters affecting the expected count have changed, recalculate the total cadence count
+  if (hasCountAffectingChanges && currentGoal) {
+    // Get the updated values or use current values if not being updated
+    const startDate = normalizedUpdates.start_date || currentGoal.start_date;
+    const dueDate = normalizedUpdates.due_date || currentGoal.due_date;
+    const cadence = normalizedUpdates.cadence || currentGoal.cadence;
+    const targetCount = normalizedUpdates.target_count || currentGoal.target_count;
+    
+    console.log('Recalculating expected practice events with:', {
+      startDate,
+      dueDate,
+      cadence,
+      targetCount
+    });
+    
+    // We don't need to store this value in the database as it's calculated on-the-fly
+    // when needed, but we log it for debugging purposes
+    const expectedEvents = calculateExpectedPracticeEvents(
+      startDate,
+      cadence,
+      targetCount,
+      dueDate
+    );
+    
+    console.log('Recalculated expected practice events:', expectedEvents);
+  }
   
   const { data, error } = await supabase
     .from('goals')

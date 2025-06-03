@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from './ProfileModal';
+import HelpfulHintsModal from './HelpfulHintsModal';
 import { signOut } from '../services/supabase';
 
 interface AvatarProps {
@@ -12,6 +13,7 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showHelpfulHintsModal, setShowHelpfulHintsModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -103,6 +105,20 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             onClick={() => {
               setShowDropdown(false);
+              setShowHelpfulHintsModal(true);
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="17" x2="12" y2="17"></line>
+            </svg>
+            Helpful Hints
+          </button>
+          <button 
+            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            onClick={() => {
+              setShowDropdown(false);
               handleSignOut();
             }}
           >
@@ -119,6 +135,12 @@ const Avatar: React.FC<AvatarProps> = ({ size = 'md' }) => {
       {showProfileModal && (
         <ProfileModal 
           onClose={() => setShowProfileModal(false)} 
+        />
+      )}
+      
+      {showHelpfulHintsModal && (
+        <HelpfulHintsModal
+          onClose={() => setShowHelpfulHintsModal(false)}
         />
       )}
     </div>
