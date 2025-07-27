@@ -29,6 +29,11 @@ interface GoalButtonProps {
   onDecrement?: () => void;
   onEdit: () => void;
   onStartSession?: (goal: Goal) => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  draggable?: boolean;
 }
 
 /**
@@ -38,7 +43,19 @@ interface GoalButtonProps {
  * @param onClick - Function to call when the button is clicked
  * @param onEdit - Function to call when the edit button is clicked
  */
-const GoalButton: React.FC<GoalButtonProps> = ({ goal, status, onClick, onDecrement, onEdit, onStartSession }) => {
+const GoalButton: React.FC<GoalButtonProps> = ({ 
+  goal, 
+  status, 
+  onClick, 
+  onDecrement, 
+  onEdit, 
+  onStartSession,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  draggable = false
+}) => {
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
   const [showSessionTimer, setShowSessionTimer] = useState(false);
@@ -115,10 +132,10 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, status, onClick, onDecrem
     if (audioRef.current) {
       // Reset the audio to the beginning if it's already playing
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(error => {
-        // Silently handle errors - often due to user interaction requirements
-        console.log('Audio playback failed:', error);
-      });
+              audioRef.current.play().catch(() => {
+          // Silently handle errors - often due to user interaction requirements
+   
+        });
     }
     
     // Provide haptic feedback if available
@@ -239,21 +256,48 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, status, onClick, onDecrem
       <div
         className={`relative flex flex-col items-center justify-center p-4 rounded-lg transition-all duration-300 font-medium min-h-[180px] w-full mb-4 ${getGoalStatusColor(status).bg} border-2 border-t-white/30 border-l-white/30 border-r-black/10 border-b-black/20 shadow-md hover:translate-y-[-2px] hover:shadow-lg hover:border-t-white/40 hover:border-l-white/40 active:translate-y-[1px] active:shadow-inner active:scale-[0.98] active:border-t-black/10 active:border-l-black/10 active:border-r-white/20 active:border-b-white/10 ${isLongPress ? 'scale-95 opacity-90 border-t-black/10 border-l-black/10 border-r-white/20 border-b-white/10' : ''}`}
         onClick={trackCardClick}
+        draggable={draggable}
+        onDragStart={(e) => {
+          onDragStart?.(e);
+        }}
+        onDragOver={(e) => {
+          onDragOver?.(e);
+        }}
+        onDrop={(e) => {
+          onDrop?.(e);
+        }}
+        onDragEnd={(e) => {
+          onDragEnd?.(e);
+        }}
+        onPointerDown={(e) => {
+          // Only handle long press if not clicking on the drag handle area
+          const rect = e.currentTarget.getBoundingClientRect();
+          const clickY = e.clientY - rect.top;
+          const clickX = e.clientX - rect.left;
+          
+          // Check if click is in the drag handle area (top center)
+          const isInDragHandle = clickY < 24 && clickX > rect.width / 2 - 16 && clickX < rect.width / 2 + 16;
+          
+          if (!isInDragHandle) {
+            handlePointerDown(e);
+          }
+        }}
       >
         {/* Drag handle */}
         <div 
-          className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-6 flex flex-col items-center justify-center gap-[3px] z-10"
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            handlePointerDown(e);
+          className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-6 flex flex-col items-center justify-center gap-[3px] z-10 cursor-grab active:cursor-grabbing hover:bg-white/10 rounded-t-lg transition-colors"
+          onPointerDown={() => {
+            // Don't stop propagation - let the parent handle drag
+            // Just prevent the long press from triggering
           }}
-          onTouchStart={(e) => {
-            e.stopPropagation();
+          onTouchStart={() => {
+            // Don't stop propagation - let the parent handle drag
+            // Just prevent the long press from triggering
           }}
         >
-          <div className="w-6 h-[2px] bg-white/20 rounded-full"></div>
-          <div className="w-6 h-[2px] bg-white/20 rounded-full"></div>
-          <div className="w-6 h-[2px] bg-white/20 rounded-full"></div>
+          <div className="w-6 h-[2px] bg-white/40 rounded-full"></div>
+          <div className="w-6 h-[2px] bg-white/40 rounded-full"></div>
+          <div className="w-6 h-[2px] bg-white/40 rounded-full"></div>
         </div>
 
         {/* Count indicator */}
@@ -319,13 +363,7 @@ const GoalButton: React.FC<GoalButtonProps> = ({ goal, status, onClick, onDecrem
                       goal._expectedCount = expected;
                       
                       // Log the calculation for debugging (only when calculated)
-                      console.log('GOAL BUTTON CALCULATION:');
-                      console.log('Goal:', goal.name);
-                      console.log('Start Date:', new Date(goal.startDate).toLocaleString());
-                      console.log('Cadence:', goal.cadence);
-                      console.log('Target Count:', goal.targetCount);
-                      console.log('Due Date:', goal.dueDate ? new Date(goal.dueDate).toLocaleString() : 'None');
-                      console.log('Expected Events:', expected);
+                      
                     }
                     
                     return goal._expectedCount;

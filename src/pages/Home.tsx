@@ -334,8 +334,8 @@ const Home: React.FC = () => {
     try {
       if (selectedGoal) {
         // Update existing goal
-        const updatedGoal = await updateGoal(selectedGoal.id, goalData);
-        console.log('Goal updated successfully:', updatedGoal);
+        await updateGoal(selectedGoal.id, goalData);
+    
       } else if (user) {
         // Create a new goal
         const goalToCreate = {
@@ -353,8 +353,8 @@ const Home: React.FC = () => {
         };
         
         // Create the goal and store the result
-        const createdGoal = await createGoal(goalToCreate);
-        console.log('Goal created successfully:', createdGoal);
+        await createGoal(goalToCreate);
+    
         
         // The context should have already updated the goals array,
         // but we'll force a refresh of the goals list just to be sure
@@ -388,12 +388,12 @@ const Home: React.FC = () => {
   const confirmDeleteGoal = async () => {
     if (selectedGoal) {
       try {
-        console.log(`Home: Attempting to delete goal: ${selectedGoal.name} (${selectedGoal.id})`);
+    
         // Set loading state while deletion is in progress
         // setIsLoading removed (was unused)
         
-        const result = await deleteGoal(selectedGoal.id);
-        console.log(`Home: Delete goal result:`, result);
+        await deleteGoal(selectedGoal.id);
+
         
         setShowDeleteConfirmation(false);
         setIsFormOpen(false);
@@ -456,7 +456,13 @@ const Home: React.FC = () => {
     lastDragEndTime.current = Date.now();
   };
   
-  // Removed unused handleTouchStart function
+  // Handle touch start for mobile drag and drop
+  const handleTouchStart = (e: React.TouchEvent, goal: Goal) => {
+    // Store the initial touch position
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+    touchedGoal.current = goal;
+  };
   
   // Handle touch move for mobile drag and drop
   const handleTouchMove = (e: React.TouchEvent, goal: Goal) => {
@@ -556,15 +562,9 @@ const Home: React.FC = () => {
   const handleDragOver = (e: React.DragEvent, goal: Goal) => {
     e.preventDefault();
     if (!draggedGoal || draggedGoal.id === goal.id) return;
-    
-    // If not already in custom sort mode, switch to it
-    if (sortMethod !== 'custom') {
-      setSortMethod('custom');
-    }
-    
     setDragOverGoal(goal);
   };
-  
+
   // Handle drop for custom sorting
   const handleDrop = async (e: React.DragEvent, targetGoal: Goal) => {
     e.preventDefault();
@@ -606,7 +606,7 @@ const Home: React.FC = () => {
       // Update the sort order in the database
       await updateGoalOrder(draggedGoal.id, newSortOrder);
     } catch (error) {
-      console.error('Error reordering goals:', error);
+      console.error('❌ Error reordering goals:', error);
     } finally {
       setDraggedGoal(null);
       setDragOverGoal(null);
@@ -682,6 +682,13 @@ const Home: React.FC = () => {
     }
   }, [goalsLoading]);
   
+  // When sort method changes, fetch without showing loading indicator
+  useEffect(() => {
+    if (user && initialDataLoaded) {
+      fetchGoals(false);
+    }
+  }, [sortMethod]);
+  
   // Only show loading during initial authentication
   if (authLoading && !user) {
     return (
@@ -712,6 +719,54 @@ const Home: React.FC = () => {
               </div>
             )}
             
+            {/* Mobile-friendly sort selector */}
+            <div className="flex justify-center mt-4 mb-6">
+              <div className="inline-flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setSortMethod('newest')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    sortMethod === 'newest'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Newest First
+                </button>
+                <button
+                  onClick={() => setSortMethod('oldest')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    sortMethod === 'oldest'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Oldest First
+                </button>
+                <button
+                  onClick={() => setSortMethod('custom')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    sortMethod === 'custom'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Custom Order
+                </button>
+              </div>
+            </div>
+            
+            {/* Show drag indicator when in custom mode */}
+            {sortMethod === 'custom' && (
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                  </svg>
+                  <span className="text-sm font-medium text-blue-800">Drag the three lines to reorder goals</span>
+                </div>
+              </div>
+            )}
+            
             {/* Show help info only when there are no goals */}
             {filteredGoals.length === 0 ? (
               <div className="mt-6 bg-blue-50 p-5 rounded-lg border border-blue-100 text-left max-w-lg mx-auto">
@@ -737,6 +792,22 @@ const Home: React.FC = () => {
                       </svg>
                     </div>
                     <span><b>Long press</b> on a goal to start a timed practice session</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                      </svg>
+                    </div>
+                    <span><b>Drag</b> the three lines at the top of any goal to reorder your practice priorities (use "Custom Order" mode)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h18M3 8h18M3 12h18M3 16h18"></path>
+                      </svg>
+                    </div>
+                    <span>Use the sort options above to view goals by <b>Newest First</b>, <b>Oldest First</b>, or <b>Custom Order</b></span>
                   </li>
                   <li className="flex items-start">
                     <div className="flex-shrink-0 bg-blue-100 rounded-full p-1 mr-3">
@@ -776,18 +847,16 @@ const Home: React.FC = () => {
         )}
         {initialDataLoaded && filteredGoals.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredGoals.map((goal) => (
-              <div 
-                key={goal.id}
-                className={`relative ${dragOverGoal?.id === goal.id ? 'border-2 border-blue-400 rounded-lg' : ''} ${draggedGoal?.id === goal.id ? 'opacity-50 transform scale-105' : ''}`}
-                draggable={sortMethod === 'custom'}
-                onDragStart={() => handleDragStart(goal)}
-                onDragOver={(e) => handleDragOver(e, goal)}
-                onDrop={(e) => handleDrop(e, goal)}
-                onDragEnd={handleDragEnd}
-                onTouchMove={(e) => handleTouchMove(e, goal)}
-                onTouchEnd={(e) => handleTouchEnd(e, goal)}
-              >
+            {filteredGoals.map((goal) => {
+              const isDraggable = sortMethod === 'custom';
+              return (
+                <div 
+                  key={goal.id}
+                  className={`relative ${dragOverGoal?.id === goal.id ? 'border-2 border-blue-400 rounded-lg' : ''} ${draggedGoal?.id === goal.id ? 'opacity-50 transform scale-105' : ''}`}
+                  onTouchStart={(e) => handleTouchStart(e, goal)}
+                  onTouchMove={(e) => handleTouchMove(e, goal)}
+                  onTouchEnd={(e) => handleTouchEnd(e, goal)}
+                >
                 {/* Drag handle removed - now using the one in GoalButton */}
                 <div 
                   onClick={(e) => {
@@ -809,11 +878,19 @@ const Home: React.FC = () => {
                     onDecrement={() => handleGoalDecrement(goal.id)}
                     onEdit={() => handleGoalEdit(goal)}
                     onStartSession={() => setActiveGoalId(goal.id)}
+                    draggable={isDraggable}
+                    onDragStart={() => {
+                      handleDragStart(goal);
+                    }}
+                    onDragOver={(e) => handleDragOver(e, goal)}
+                    onDrop={(e) => handleDrop(e, goal)}
+                    onDragEnd={handleDragEnd}
                   />
 
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
