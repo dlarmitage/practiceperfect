@@ -343,11 +343,7 @@ export const calculateExpectedPracticeEvents = (
       const elapsedMinutes = (endTime.getTime() - startDateObj.getTime()) / (1000 * 60);
       expectedEvents = Math.floor(elapsedMinutes / 60 * targetCount);
       
-      console.log('HOURLY CALCULATION:');
-      console.log('Start Date:', startDateObj.toLocaleString());
-      console.log('End Time:', endTime.toLocaleString());
-      console.log('Elapsed Minutes:', elapsedMinutes);
-      console.log('Expected Events:', expectedEvents);
+
       break;
     }
     
@@ -359,21 +355,13 @@ export const calculateExpectedPracticeEvents = (
         const elapsedHours = Math.floor((endTime.getTime() - startDateObj.getTime()) / (1000 * 60 * 60));
         expectedEvents = elapsedHours;
         
-        console.log('DAILY CALCULATION (24 per day):');
-        console.log('Start Date:', startDateObj.toLocaleString());
-        console.log('Current Time:', endTime.toLocaleString());
-        console.log('Elapsed Hours:', elapsedHours);
-        console.log('Expected Events:', expectedEvents);
+
       } else {
         // For other daily targets
         const elapsedHours = (endTime.getTime() - startDateObj.getTime()) / (1000 * 60 * 60);
         expectedEvents = Math.floor(elapsedHours / 24 * targetCount);
         
-        console.log('DAILY CALCULATION:');
-        console.log('Start Date:', startDateObj.toLocaleString());
-        console.log('End Time:', endTime.toLocaleString());
-        console.log('Elapsed Hours:', elapsedHours);
-        console.log('Expected Events:', expectedEvents);
+
       }
       break;
     }
@@ -383,11 +371,7 @@ export const calculateExpectedPracticeEvents = (
       const elapsedDays = (endTime.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24);
       expectedEvents = Math.floor(elapsedDays / 7 * targetCount);
       
-      console.log('WEEKLY CALCULATION:');
-      console.log('Start Date:', startDateObj.toLocaleString());
-      console.log('End Time:', endTime.toLocaleString());
-      console.log('Elapsed Days:', elapsedDays);
-      console.log('Expected Events:', expectedEvents);
+
       break;
     }
   }

@@ -14,16 +14,11 @@ const Sessions: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
 
-  console.log('Sessions page rendered with:', { 
-    sessionsCount: sessions.length, 
-    goalsCount: goals.length,
-    isLoading, 
-    activeGoalId 
-  });
+
 
   // Set selected goal based on activeGoalId or default to most recent
   useEffect(() => {
-    console.log('Sessions: Selecting goal based on activeGoalId:', activeGoalId);
+
     
     if (goals.length === 0) return;
     
@@ -31,24 +26,24 @@ const Sessions: React.FC = () => {
     if (activeGoalId) {
       const activeGoal = goals.find(goal => goal.id === activeGoalId);
       if (activeGoal) {
-        console.log('Sessions: Found matching goal for activeGoalId:', activeGoal.name);
+
         setSelectedGoal(activeGoal);
         return;
       }
     }
     
     // Default to the most recently updated goal
-    console.log('Sessions: No active goal, selecting most recent');
+
     const mostRecentGoal = [...goals]
       .filter((g: Goal) => g.isActive)
       .sort((a: Goal, b: Goal) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
     
     if (mostRecentGoal) {
-      console.log('Sessions: Selected most recent goal:', mostRecentGoal.name);
+
       setSelectedGoal(mostRecentGoal);
       // Only set active goal ID if there isn't one already
       if (!activeGoalId) {
-        console.log('Sessions: Setting activeGoalId to most recent goal');
+
         setActiveGoalId(mostRecentGoal.id);
       }
     }
@@ -59,11 +54,7 @@ const Sessions: React.FC = () => {
   
   // Log when sessions change
   useEffect(() => {
-    console.log('Sessions updated:', { 
-      count: sessions.length,
-      selectedGoalName: selectedGoal?.name,
-      loading: isLoading
-    });
+
     
     // Mark data as loaded once we have sessions or explicitly know there are none
     if (!initialDataLoaded && !isLoading) {

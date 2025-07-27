@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Goal, Session } from '../types';
 import { calculateExpectedPracticeEvents } from '../utils/goalUtils';
 import type { SortMethod } from '../context/GoalContext';
+import { authRateLimiter, signupRateLimiter, passwordResetRateLimiter } from '../utils/rateLimiter';
 
 // Initialize Supabase client with extended session persistence
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -68,7 +69,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax`;
           
           // For debugging
-          console.log(`Auth data saved to both localStorage and cookies with 365-day expiration`);
+      
         } catch (error) {
           console.error('Error setting localStorage:', error);
           // If localStorage fails, still try to set the cookie
@@ -76,7 +77,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
             const expirationDate = new Date();
             expirationDate.setDate(expirationDate.getDate() + 365);
             document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax`;
-            console.log('Fallback: Auth data saved to cookies only');
+        
           } catch (cookieError) {
             console.error('Critical error: Could not save auth data to cookies:', cookieError);
           }
@@ -94,7 +95,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict;`;
           document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure;`;
           
-          console.log(`Auth data removed from both localStorage and cookies`);
+      
         } catch (error) {
           console.error('Error removing item from storage:', error);
           // Still try to remove cookies even if localStorage fails
@@ -132,20 +133,56 @@ const mapDatabaseGoal = (data: any): Goal => ({
 });
 
 // Authentication functions
-export const signUp = async (email: string, password: string, firstName?: string) => {
-  return await supabase.auth.signUp({ 
-    email, 
-    password,
-    options: {
-      data: {
-        display_name: firstName
-      }
+export const signUp = async (email: string, password: string, firstName: string) => {
+  // Check rate limiting
+  if (!signupRateLimiter.isAllowed(email)) {
+    const remainingTime = signupRateLimiter.getRemainingTime(email);
+    const minutes = Math.ceil(remainingTime / (1000 * 60));
+    throw new Error(`Too many sign-up attempts. Please try again in ${minutes} minutes.`);
+  }
+
+  try {
+    const result = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: firstName,
+        },
+      },
+    });
+    
+    // Reset rate limiter on successful sign up
+    if (!result.error) {
+      signupRateLimiter.reset(email);
     }
-  });
+    
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 export const signIn = async (email: string, password: string) => {
-  return await supabase.auth.signInWithPassword({ email, password });
+  // Check rate limiting
+  if (!authRateLimiter.isAllowed(email)) {
+    const remainingTime = authRateLimiter.getRemainingTime(email);
+    const minutes = Math.ceil(remainingTime / (1000 * 60));
+    throw new Error(`Too many sign-in attempts. Please try again in ${minutes} minutes.`);
+  }
+
+  try {
+    const result = await supabase.auth.signInWithPassword({ email, password });
+    
+    // Reset rate limiter on successful sign in
+    if (!result.error) {
+      authRateLimiter.reset(email);
+    }
+    
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 export const signOut = async () => {
@@ -168,9 +205,27 @@ export const getCurrentUser = async () => {
  * Send password reset email
  */
 export const resetPassword = async (email: string) => {
-  return await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
+  // Check rate limiting
+  if (!passwordResetRateLimiter.isAllowed(email)) {
+    const remainingTime = passwordResetRateLimiter.getRemainingTime(email);
+    const minutes = Math.ceil(remainingTime / (1000 * 60));
+    throw new Error(`Too many password reset attempts. Please try again in ${minutes} minutes.`);
+  }
+
+  try {
+    const result = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    // Reset rate limiter on successful password reset request
+    if (!result.error) {
+      passwordResetRateLimiter.reset(email);
+    }
+    
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 /**
@@ -285,8 +340,7 @@ export const deleteAccount = async (password: string) => {
       throw new Error('Password verification failed');
     }
     
-    console.log('Password verified, proceeding with account deletion');
-    console.log('User ID:', userData.user.id);
+
     
     // Delete all user data first
     // 1. Delete sessions
@@ -298,7 +352,7 @@ export const deleteAccount = async (password: string) => {
     if (sessionsError) {
       console.error('Error deleting user sessions:', sessionsError);
     } else {
-      console.log('Successfully deleted user sessions');
+
     }
 
     // 2. Delete goals
@@ -310,12 +364,12 @@ export const deleteAccount = async (password: string) => {
     if (goalsError) {
       console.error('Error deleting user goals:', goalsError);
     } else {
-      console.log('Successfully deleted user goals');
+
     }
     
     // 3. Use the most reliable method to delete the user from auth
     try {
-      console.log('Attempting to delete user from auth system');
+
       
       // This is a direct method that works with Supabase
       const { error } = await supabase.rpc('delete_user');
@@ -325,7 +379,7 @@ export const deleteAccount = async (password: string) => {
         throw error;
       }
       
-      console.log('Successfully deleted user from auth system');
+      
       
       return {
         success: true,
@@ -336,7 +390,7 @@ export const deleteAccount = async (password: string) => {
       
       // If the RPC method fails, try the standard sign out
       await supabase.auth.signOut();
-      console.log('User signed out');
+  
       
       return {
         success: true,
@@ -382,16 +436,16 @@ export const createSession = async (sessionData: Omit<Session, 'id' | 'created_a
  */
 export const getSessions = async () => {
   try {
-    console.log('Getting current user...');
+  
     const user = await supabase.auth.getUser();
-    console.log('User data:', user.data);
+
     
     if (!user.data.user) {
       console.error('No authenticated user found');
       throw new Error('User not authenticated');
     }
     
-    console.log('Querying sessions table for user:', user.data.user.id);
+
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
@@ -403,7 +457,7 @@ export const getSessions = async () => {
       throw error;
     }
     
-    console.log('Sessions retrieved:', data ? data.length : 0);
+
     return data || [];
   } catch (error) {
     console.error('Exception in getSessions:', error);
@@ -614,7 +668,7 @@ export const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedA
     sort_order: maxOrder + 1,
   };
   
-  console.log('Creating goal with data:', newGoal);
+  
   
   const { data, error } = await supabase
     .from('goals')
@@ -638,7 +692,7 @@ export const updateGoalSortOrder = async (id: string, newSortOrder: number): Pro
     throw new Error('User not authenticated');
   }
   
-  console.log('Using special updateGoalSortOrder function with direct update');
+  
   
   // First get the current goal to preserve its data
   const { data: currentGoal, error: fetchError } = await supabase
@@ -653,7 +707,7 @@ export const updateGoalSortOrder = async (id: string, newSortOrder: number): Pro
     throw fetchError;
   }
   
-  console.log('Current goal before sort update:', currentGoal);
+  
   
   // Now update only the sort_order field, keeping the original updated_at and last_clicked
   const { error } = await supabase
@@ -746,9 +800,7 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     Object.keys(normalizedUpdates).length === 1 && 
     ('sort_order' in normalizedUpdates);
   
-  console.log('Update goal called with:', { id, updates });
-  console.log('Normalized updates:', normalizedUpdates);
-  console.log('Is sort order update only:', isSortOrderUpdateOnly);
+  
   
   // Map normalized updates to database format
   const dbUpdates = { ...normalizedUpdates };
@@ -756,7 +808,7 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   // For sort order updates, we need to explicitly preserve the original timestamp
   if (isSortOrderUpdateOnly) {
     // For sort order updates, we'll explicitly keep the original timestamp
-    console.log('Preserving timestamp for sortOrder-only update');
+    
     
     // We'll remove any updated_at that might have been included
     if ('updated_at' in dbUpdates) {
@@ -765,13 +817,13 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
   } else {
     // For all other updates, set the timestamp to now
     dbUpdates.updated_at = new Date().toISOString();
-    console.log('Updating timestamp because not just sortOrder');
+    
   }
   
   // Field name mappings are already handled in the normalization step above
   
   // Log the final updates being sent to the database
-  console.log('Final updates being sent to database:', dbUpdates);
+  
   
   // Get the current goal to compare before/after
   const { data: currentGoal } = await supabase
@@ -781,7 +833,7 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     .eq('user_id', userData.user.id)
     .single();
     
-  console.log('Current goal before update:', currentGoal);
+  
   
   // If parameters affecting the expected count have changed, recalculate the total cadence count
   if (hasCountAffectingChanges && currentGoal) {
@@ -791,23 +843,18 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     const cadence = normalizedUpdates.cadence || currentGoal.cadence;
     const targetCount = normalizedUpdates.target_count || currentGoal.target_count;
     
-    console.log('Recalculating expected practice events with:', {
-      startDate,
-      dueDate,
-      cadence,
-      targetCount
-    });
+
     
     // We don't need to store this value in the database as it's calculated on-the-fly
-    // when needed, but we log it for debugging purposes
-    const expectedEvents = calculateExpectedPracticeEvents(
+    // when needed, but we calculate it for potential future use
+    calculateExpectedPracticeEvents(
       startDate,
       cadence,
       targetCount,
       dueDate
     );
     
-    console.log('Recalculated expected practice events:', expectedEvents);
+
   }
   
   const { data, error } = await supabase
@@ -818,7 +865,7 @@ export const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 
     .select()
     .single();
     
-  console.log('Goal after update:', data);
+
   
   if (error) {
     console.error('Supabase error:', error);
@@ -881,7 +928,7 @@ export const incrementGoalCount = async (id: string): Promise<Goal> => {
 
 export const deleteGoal = async (id: string) => {
   try {
-    console.log(`Attempting to delete goal with ID: ${id}`);
+
     
     // Get the current user to get their ID
     const { data: userData } = await supabase.auth.getUser();
@@ -889,7 +936,7 @@ export const deleteGoal = async (id: string) => {
       throw new Error('User not authenticated');
     }
     
-    console.log(`Authenticated user ID: ${userData.user.id}`);
+
     
     // First verify the goal exists and belongs to the user
     const { data: goalData, error: fetchError } = await supabase
@@ -909,7 +956,7 @@ export const deleteGoal = async (id: string) => {
       throw new Error('Goal not found or does not belong to user');
     }
     
-    console.log('Goal found and verified, proceeding with deletion');
+    
     
     // Now delete the goal
     const { error } = await supabase
@@ -923,7 +970,7 @@ export const deleteGoal = async (id: string) => {
       throw error;
     }
     
-    console.log(`Successfully deleted goal with ID: ${id}`);
+
     return true;
   } catch (err) {
     console.error('Error in deleteGoal function:', err);

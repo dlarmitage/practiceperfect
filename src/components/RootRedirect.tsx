@@ -18,11 +18,7 @@ const RootRedirect: React.FC<RootRedirectProps> = ({ isPWA, landingPage }) => {
   useEffect(() => {
     // Log authentication state for debugging
     if (!loading) {
-      console.log('Auth state at root route:', { 
-        isAuthenticated: !!user, 
-        isPWA,
-        userId: user?.id
-      });
+      
     }
   }, [user, loading, isPWA]);
 
@@ -39,7 +35,7 @@ const RootRedirect: React.FC<RootRedirectProps> = ({ isPWA, landingPage }) => {
   // If user is authenticated, redirect to home
   // This is especially important for PWA users who should go straight to their content
   if (user) {
-    console.log('User is authenticated, redirecting to /home');
+    
     return <Navigate to="/home" replace />;
   }
 

@@ -1,23 +1,29 @@
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { GoalProvider } from './context/GoalContext';
-import UpdateNotification from './components/UpdateNotification';
 import { SessionProvider } from './context/SessionContext';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
-import LandingPage from './pages/LandingPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import TailwindDemo from './pages/TailwindDemo';
-import LandingPageMockup from './pages/LandingPageMockup';
-
-// Import the AuthenticatedRoutes component
+import UpdateNotification from './components/UpdateNotification';
+import RootRedirect from './components/RootRedirect';
 import AuthenticatedRoutes from './components/AuthenticatedRoutes';
 
-// Import the RootRedirect component for handling authentication at root route
-import RootRedirect from './components/RootRedirect';
+// Lazy load pages for code splitting
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Signup = React.lazy(() => import('./pages/Signup'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
+const TailwindDemo = React.lazy(() => import('./pages/TailwindDemo'));
+const LandingPageMockup = React.lazy(() => import('./pages/LandingPageMockup'));
+
+// Loading component for lazy-loaded pages
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    <span className="ml-3 text-gray-600">Loading...</span>
+  </div>
+);
 
 function App() {
   // Pull-to-refresh state
@@ -69,34 +75,33 @@ function App() {
   const [isPWA, setIsPWA] = useState(false);
 
   useEffect(() => {
-    // Check for online/offline status
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
+    
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Check if the app is running as a PWA
-    // This helps with proper routing for installed PWA users
-    const checkIfPWA = () => {
-      // iOS detection - need to use type assertion for standalone property
-      const isIOSPWA = (window.navigator as any).standalone === true;
-      
-      // Android/Chrome detection
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      
-      // Set PWA status
-      setIsPWA(isIOSPWA || isStandalone);
-      
-      console.log('App is running as PWA:', isIOSPWA || isStandalone);
-    };
     
-    checkIfPWA();
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  useEffect(() => {
+    // Check if the app is running as a PWA
+    const checkPWA = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isInPWA = (window.navigator as any).standalone === true;
+      setIsPWA(isStandalone || isInPWA);
+    };
+    
+    checkPWA();
+    
+    // Listen for changes in display mode
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', checkPWA);
+    
+    return () => mediaQuery.removeEventListener('change', checkPWA);
   }, []);
 
   return (
@@ -131,27 +136,29 @@ function App() {
                 </div>
               )}
               <UpdateNotification />
-              <Routes>
-                {/* Root route with smart redirection */}
-                <Route path="/" element={<RootRedirect isPWA={isPWA} landingPage={<LandingPage />} />} />
-                
-                {/* Public routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/terms-of-service" element={<TermsOfService />} />
-                <Route path="/tailwind" element={<TailwindDemo />} />
-                <Route path="/mockup" element={<LandingPageMockup />} />
-                
-                {/* Protected routes */}
-                <Route path="/home" element={<AuthenticatedRoutes />} />
-                <Route path="/sessions" element={<AuthenticatedRoutes />} />
-                <Route path="/analysis" element={<AuthenticatedRoutes />} />
-                
-                {/* Fallback route */}
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Root route with smart redirection */}
+                  <Route path="/" element={<RootRedirect isPWA={isPWA} landingPage={<LandingPage />} />} />
+                  
+                  {/* Public routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/tailwind" element={<TailwindDemo />} />
+                  <Route path="/mockup" element={<LandingPageMockup />} />
+                  
+                  {/* Protected routes */}
+                  <Route path="/home" element={<AuthenticatedRoutes />} />
+                  <Route path="/sessions" element={<AuthenticatedRoutes />} />
+                  <Route path="/analysis" element={<AuthenticatedRoutes />} />
+                  
+                  {/* Fallback route */}
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </Suspense>
             </div>
           </SessionProvider>
         </GoalProvider>

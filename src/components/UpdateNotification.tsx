@@ -42,7 +42,6 @@ const UpdateNotification: React.FC = () => {
         
         // If we've already notified about this version, don't show again
         if (lastNotifiedVersion === APP_VERSION) {
-          console.log('Already notified about this version');
           return;
         }
         
@@ -54,7 +53,7 @@ const UpdateNotification: React.FC = () => {
         }
       } else if (event.data && event.data.type === 'RELOAD_PAGE') {
         // Service worker has activated, reload the page
-        console.log('Received reload message from service worker');
+
         window.location.reload();
       }
     };
@@ -79,7 +78,6 @@ const UpdateNotification: React.FC = () => {
             
             // If we've already notified about this version, don't show again
             if (lastNotifiedVersion === APP_VERSION) {
-              console.log('Already notified about this version');
               return;
             }
             

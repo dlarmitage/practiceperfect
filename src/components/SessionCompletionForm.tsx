@@ -27,18 +27,10 @@ const SessionCompletionForm: React.FC<SessionCompletionFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting session with data:', {
-        goal_id: goal.id,
-        session_date: new Date().toISOString(),
-        count: 1,
-        duration: sessionDuration,
-        mood: mood,
-        notes: notes,
-        location: location
-      });
+
       
       // Create the new session
-      const newSession = await createNewSession({
+      await createNewSession({
         goal_id: goal.id,
         session_date: new Date().toISOString(), // Save the full ISO timestamp with time
         count: 1,
@@ -48,7 +40,7 @@ const SessionCompletionForm: React.FC<SessionCompletionFormProps> = ({
         location: location || undefined
       });
       
-      console.log('Session created successfully:', newSession);
+
       
       // Increment the goal count
       await incrementGoalCount(goal.id);

@@ -85,11 +85,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         // Always try to refresh the session first
         // This is important for page refreshes and PWA launches
-        console.log('Attempting to refresh session on startup...');
+    
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshData.session && refreshData.user) {
-          console.log('Session refreshed successfully', refreshData.user.email);
+  
           const userData: User = {
             id: refreshData.user.id,
             email: refreshData.user.email || '',
@@ -102,11 +102,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         // If session refresh didn't work, try getting the current user
-        console.log('Trying getCurrentUser as fallback...');
+
         const { data } = await getCurrentUser();
         
         if (data.user) {
-          console.log('User found via getCurrentUser()', data.user.email);
+          
           const userData: User = {
             id: data.user.id,
             email: data.user.email || '',
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           setUser(userData);
         } else {
-          console.log('No authenticated user found');
+  
           setUser(null);
         }
       } catch (err) {

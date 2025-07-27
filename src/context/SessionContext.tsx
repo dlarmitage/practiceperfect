@@ -62,7 +62,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   // Initial data load when component mounts
   useEffect(() => {
     const initialLoad = async () => {
-      console.log('SessionContext: Initial data load');
+  
       await fetchSessionsWithLoading(true, getSessions);
     };
     
@@ -74,7 +74,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     // Skip if not initialized or during initial render
     if (!initialized) return;
     
-    console.log('SessionContext: activeGoalId changed to:', activeGoalId);
+
     
     if (activeGoalId) {
       // Don't show loading indicator when switching goals after initial load
@@ -108,9 +108,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
     setError(null);
     try {
-      console.log('Fetching all sessions...');
+  
       const data = await getSessions();
-      console.log('Sessions data received:', data);
+      
       setSessions(data || []);
       setInitialDataLoaded(true);
     } catch (err) {

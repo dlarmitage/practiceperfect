@@ -263,18 +263,18 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
 
   const deleteGoal = async (id: string): Promise<boolean> => {
     try {
-      console.log(`GoalContext: Attempting to delete goal with ID: ${id}`);
+  
       const result = await deleteGoalService(id);
       
       if (result) {
-        console.log(`GoalContext: Goal deleted successfully, updating state`);
+
         // Update the local state by filtering out the deleted goal
         setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
         
         // Also fetch goals to ensure our state is in sync with the database, but don't show loading indicator
         try {
           await fetchGoals(false);
-          console.log('GoalContext: Goals refreshed after deletion');
+  
         } catch (fetchErr) {
           console.warn('GoalContext: Failed to refresh goals after deletion', fetchErr);
           // Continue with the deletion process even if refresh fails
@@ -295,7 +295,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
   // Function to update goal order
   const updateGoalOrder = async (goalId: string, newOrder: number): Promise<void> => {
     try {
-      console.log('GoalContext: updateGoalOrder called with:', { goalId, newOrder });
+  
       
       // Use the special updateGoalSortOrder function that preserves timestamps
       await updateGoalSortOrderService(goalId, newOrder);

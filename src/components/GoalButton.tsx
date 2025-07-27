@@ -232,6 +232,17 @@ const GoalButton: React.FC<GoalButtonProps> = ({
   // Handle edit button click
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Clear any active long press timer to prevent session timer from starting
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    
+    // Reset pointer down state
+    isPointerDown.current = false;
+    setIsLongPress(false);
+    
     onEdit();
   };
   
@@ -282,6 +293,17 @@ const GoalButton: React.FC<GoalButtonProps> = ({
             handlePointerDown(e);
           }
         }}
+                  onPointerUp={() => {
+          // Clear long press timer when pointer is released
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+          }
+          
+          // Reset pointer down state
+          isPointerDown.current = false;
+          setIsLongPress(false);
+        }}
       >
         {/* Drag handle */}
         <div 
@@ -289,6 +311,15 @@ const GoalButton: React.FC<GoalButtonProps> = ({
           onPointerDown={() => {
             // Don't stop propagation - let the parent handle drag
             // Just prevent the long press from triggering
+          }}
+          onPointerUp={() => {
+            // Clear long press timer when pointer is released on drag handle
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              setLongPressTimer(null);
+            }
+            isPointerDown.current = false;
+            setIsLongPress(false);
           }}
           onTouchStart={() => {
             // Don't stop propagation - let the parent handle drag
@@ -319,12 +350,14 @@ const GoalButton: React.FC<GoalButtonProps> = ({
           {goal.count}
         </div>
 
-        {/* Info/Edit button */}
+        {/* Edit button */}
         <div 
           className="absolute top-2 left-2 bg-white/30 rounded-full h-8 w-8 flex items-center justify-center text-white font-bold cursor-pointer hover:bg-white/50 active:bg-white/70 transition-colors"
           onClick={handleEditClick}
         >
-          Ⓘ
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
         </div>
 
         {/* Goal content */}

@@ -12,11 +12,11 @@ export const updateSW = registerSW({
   immediate: true,
   // Using registerSW options that are actually supported
   onRegistered(registration: ServiceWorkerRegistration | undefined) {
-    console.log('Service Worker registered')
+    
     
     // Check if there's a waiting service worker
     if (registration?.waiting) {
-      console.log('New service worker waiting')
+
     }
     
     // Set up periodic update checks
@@ -27,11 +27,11 @@ export const updateSW = registerSW({
   onNeedRefresh() {
     // Instead of using confirm, we'll use our UpdateNotification component
     // The component will handle the UI and the update process
-    console.log('New content available')
+    
     // We don't call updateSW(true) here because our component will handle it
   },
   onOfflineReady() {
-    console.log('App ready to work offline')
+    
   },
 })
 
