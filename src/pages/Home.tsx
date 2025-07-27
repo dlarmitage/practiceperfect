@@ -52,6 +52,9 @@ const Home: React.FC = () => {
   const setShowPWAPrompt = useState(false)[1];
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   
+  // Toast notification state for drag instruction
+  const [showDragToast, setShowDragToast] = useState(false);
+  
   // Ref to track if we're currently reordering goals
   const isReordering = useRef(false);
   
@@ -86,6 +89,25 @@ const Home: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [goals.length]);
+  
+  // Show drag instruction toast when custom mode is selected
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (sortMethod === 'custom' && initialDataLoaded) {
+      setShowDragToast(true);
+      timer = setTimeout(() => {
+        setShowDragToast(false);
+      }, 20000); // Show for 20 seconds
+    } else {
+      // Hide toast when switching away from custom mode
+      setShowDragToast(false);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [sortMethod, initialDataLoaded]);
   
   // Handle beforeinstallprompt event
   useEffect(() => {
@@ -755,17 +777,26 @@ const Home: React.FC = () => {
               </div>
             </div>
             
-            {/* Show drag indicator when in custom mode */}
-            {sortMethod === 'custom' && (
-              <div className="text-center mb-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
-                  </svg>
-                  <span className="text-sm font-medium text-blue-800">Drag the three lines to reorder goals</span>
-                </div>
+            {/* Toast notification for drag instruction */}
+            <div 
+              className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-600 ease-out ${
+                showDragToast 
+                  ? 'opacity-100 translate-y-0 scale-100' 
+                  : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
+              }`}
+            >
+              <div 
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg cursor-pointer hover:bg-blue-700 transition-colors"
+                onClick={() => {
+                  setShowDragToast(false);
+                }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+                <span className="text-sm font-medium">Drag the three lines to reorder goals</span>
               </div>
-            )}
+            </div>
             
             {/* Show help info only when there are no goals */}
             {filteredGoals.length === 0 ? (
