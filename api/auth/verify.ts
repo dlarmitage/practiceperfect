@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { sign } from 'jsonwebtoken';
-import { serialize } from 'cookie';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
@@ -37,11 +37,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 const COOKIE_NAME = 'auth_token';
 
 function signToken(payload: { userId: string; email: string }): string {
-    return sign(payload, JWT_SECRET, { expiresIn: '30d' });
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
 }
 
 function setAuthCookie(token: string) {
-    return serialize(COOKIE_NAME, token, {
+    return cookie.serialize(COOKIE_NAME, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

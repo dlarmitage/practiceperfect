@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { pgTable, text, timestamp, uuid, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, integer } from 'drizzle-orm/pg-core';
 import { eq, desc, and } from 'drizzle-orm';
 
 // ============ SCHEMA ============
@@ -34,7 +34,7 @@ interface JWTPayload { userId: string; email: string; }
 
 function verifyToken(token: string): JWTPayload | null {
     try {
-        return verify(token, JWT_SECRET) as JWTPayload;
+        return jwt.verify(token, JWT_SECRET) as JWTPayload;
     } catch {
         return null;
     }
