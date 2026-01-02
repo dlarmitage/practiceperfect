@@ -6,7 +6,7 @@ import HeroSlider from '../components/HeroSlider';
  * Landing page component for Practice Perfect
  */
 const LandingPage: React.FC = () => {
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Navigation */}
@@ -17,11 +17,8 @@ const LandingPage: React.FC = () => {
               <img src="/Logo.webp" alt="Practice Perfect Logo" className="h-8 w-auto" />
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link to="/login" className="text-gray-700 hover:text-blue-600 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium">
-                Log in
-              </Link>
-              <Link to="/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors">
-                Sign up
+              <Link to="/login" className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors">
+                Sign in
               </Link>
             </div>
           </div>
@@ -33,7 +30,7 @@ const LandingPage: React.FC = () => {
         <div className="relative">
           {/* Hero Slider */}
           <HeroSlider interval={7000} />
-          
+
           {/* Hero Content */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight drop-shadow-lg">
@@ -43,14 +40,14 @@ const LandingPage: React.FC = () => {
               Track your goals, monitor your progress, and improve faster with data-driven insights.
             </p>
             <div className="mt-10 flex justify-center gap-3 sm:gap-4">
-              <Link 
-                to="/signup" 
+              <Link
+                to="/login"
                 className="px-5 py-2 sm:px-8 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-md transition-colors"
               >
                 Get Started Free
               </Link>
-              <a 
-                href="#features" 
+              <a
+                href="#features"
                 className="px-5 py-2 sm:px-8 sm:py-3 text-sm sm:text-base bg-white text-blue-600 border border-blue-200 hover:border-blue-300 font-medium rounded-md shadow-sm transition-colors"
               >
                 Learn More
@@ -269,7 +266,7 @@ const LandingPage: React.FC = () => {
             Join thousands of users who are improving their skills with deliberate practice.
           </p>
           <div className="mt-8">
-            <Link to="/signup" className="px-8 py-3 bg-white text-blue-600 font-medium rounded-md shadow-md hover:bg-blue-50 transition-colors">
+            <Link to="/login" className="px-8 py-3 bg-white text-blue-600 font-medium rounded-md shadow-md hover:bg-blue-50 transition-colors">
               Get Started Free
             </Link>
           </div>
@@ -288,7 +285,7 @@ const LandingPage: React.FC = () => {
                 The ultimate tool for tracking and improving your practice sessions.
               </p>
             </div>
-            
+
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800">Features</h3>
               <ul className="mt-4 space-y-2">
@@ -298,7 +295,7 @@ const LandingPage: React.FC = () => {
                 <li><a href="#features" className="text-gray-500 hover:text-blue-600">Mobile App</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800">Resources</h3>
               <ul className="mt-4 space-y-2">
@@ -307,7 +304,7 @@ const LandingPage: React.FC = () => {
                 <li><a href="#" className="text-gray-500 hover:text-blue-600">Contact</a></li>
               </ul>
             </div>
-            
+
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-800">Legal</h3>
               <ul className="mt-4 space-y-2">
@@ -316,7 +313,7 @@ const LandingPage: React.FC = () => {
               </ul>
             </div>
           </div>
-          
+
           <div className="mt-12 border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
               &copy; {new Date().getFullYear()} Practice Perfect. All rights reserved.
