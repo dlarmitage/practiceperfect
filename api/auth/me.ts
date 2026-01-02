@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb, users } from '../lib/db';
+import { getDb, users } from '../utils/db';
 import { getAuthTokenFromRequest, verifyToken } from '../utils/auth';
 import { eq } from 'drizzle-orm';
 
