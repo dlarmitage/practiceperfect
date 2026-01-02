@@ -43,7 +43,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
       // Update email if password is provided
       if (currentPassword) {
-        await updateEmail({ email, password: currentPassword });
+        await updateEmail({ email });
         setCurrentPassword('');
       }
 

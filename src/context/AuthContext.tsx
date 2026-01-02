@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Delete account not fully implemented in new backend yet
-  const handleDeleteAccount = async (password: string) => {
+  const handleDeleteAccount = async (_password: string) => {
     return { success: false, message: 'Feature temporarily unavailable during migration.' };
   };
 
@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Fetch the current user on mount
     const fetchUser = async () => {
       try {
-        const { data, error } = await apiGetCurrentUser();
+        const { data, error: _error } = await apiGetCurrentUser();
         if (data && data.user) {
           setUser(data.user);
         } else {

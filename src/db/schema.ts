@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, integer, date } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, uuid, integer } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Users table (Replacing Supabase Auth)

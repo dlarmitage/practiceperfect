@@ -195,14 +195,14 @@ export const updateProfile = async (updates: { firstName: string }) => {
     return response.user;
 };
 
-export const updateEmail = async ({ email }: { email: string }) => {
+export const updateEmail = async ({ email: _email }: { email: string }) => {
     throw new Error('Email update is not available in this version.');
 };
 
-export const updatePassword = async ({ currentPassword, newPassword }: any) => {
+export const updatePassword = async ({ currentPassword: _currentPassword, newPassword: _newPassword }: any) => {
     throw new Error('Password update is not available in this version.');
 };
 
-export const resetPassword = async (email: string) => {
+export const resetPassword = async (_email: string) => {
     throw new Error('Password reset is not available. Please contact support.');
 };
