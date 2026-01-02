@@ -1,7 +1,48 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb, users, getAuthTokenFromRequest, verifyToken } from '../utils/auth';
+import { sign, verify } from 'jsonwebtoken';
+import { serialize } from 'cookie';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { eq } from 'drizzle-orm';
 
+// ============ SCHEMA ============
+const users = pgTable('users', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    email: text('email').notNull().unique(),
+    passwordHash: text('password_hash'),
+    displayName: text('display_name'),
+    avatarUrl: text('avatar_url'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============ DB ============
+function getDb() {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) throw new Error('DATABASE_URL not set');
+    return drizzle(neon(dbUrl));
+}
+
+// ============ AUTH ============
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+const COOKIE_NAME = 'auth_token';
+
+interface JWTPayload { userId: string; email: string; }
+
+function verifyToken(token: string): JWTPayload | null {
+    try {
+        return verify(token, JWT_SECRET) as JWTPayload;
+    } catch {
+        return null;
+    }
+}
+
+function getAuthTokenFromRequest(req: VercelRequest): string | null {
+    return req.cookies?.[COOKIE_NAME] || null;
+}
+
+// ============ HANDLER ============
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         if (req.method !== 'GET') {
@@ -24,7 +65,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ user: null });
         }
 
-        return res.status(200).json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
+        return res.status(200).json({
+            user: { id: user.id, email: user.email, displayName: user.displayName }
+        });
     } catch (error) {
         console.error('Auth check error:', error);
         return res.status(500).json({
