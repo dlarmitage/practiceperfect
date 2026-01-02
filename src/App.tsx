@@ -10,7 +10,7 @@ import AuthenticatedRoutes from './components/AuthenticatedRoutes';
 // Lazy load pages for code splitting
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const Login = React.lazy(() => import('./pages/Login'));
-const Signup = React.lazy(() => import('./pages/Signup'));
+const AuthVerify = React.lazy(() => import('./pages/AuthVerify'));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
@@ -77,10 +77,10 @@ function App() {
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -94,13 +94,13 @@ function App() {
       const isInPWA = (window.navigator as any).standalone === true;
       setIsPWA(isStandalone || isInPWA);
     };
-    
+
     checkPWA();
-    
+
     // Listen for changes in display mode
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
     mediaQuery.addEventListener('change', checkPWA);
-    
+
     return () => mediaQuery.removeEventListener('change', checkPWA);
   }, []);
 
@@ -140,21 +140,21 @@ function App() {
                 <Routes>
                   {/* Root route with smart redirection */}
                   <Route path="/" element={<RootRedirect isPWA={isPWA} landingPage={<LandingPage />} />} />
-                  
+
                   {/* Public routes */}
                   <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/auth/verify" element={<AuthVerify />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/terms-of-service" element={<TermsOfService />} />
                   <Route path="/tailwind" element={<TailwindDemo />} />
                   <Route path="/mockup" element={<LandingPageMockup />} />
-                  
+
                   {/* Protected routes */}
                   <Route path="/home" element={<AuthenticatedRoutes />} />
                   <Route path="/sessions" element={<AuthenticatedRoutes />} />
                   <Route path="/analysis" element={<AuthenticatedRoutes />} />
-                  
+
                   {/* Fallback route */}
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>

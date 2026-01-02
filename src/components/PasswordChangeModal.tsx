@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { updatePassword } from '../services/supabase';
+import { updatePassword } from '../services/api';
 
 interface PasswordChangeModalProps {
   onClose: () => void;
@@ -12,7 +12,7 @@ const validatePassword = (password: string) => {
   const hasLowerCase = /[a-z]/.test(password);
   const hasNumbers = /\d/.test(password);
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  
+
   const errors = [];
   if (password.length < minLength) {
     errors.push(`At least ${minLength} characters`);
@@ -29,7 +29,7 @@ const validatePassword = (password: string) => {
   if (!hasSpecialChar) {
     errors.push('One special character');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -44,34 +44,34 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const passwordValidation = validatePassword(newPassword);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess('');
-    
+
     if (newPassword !== confirmPassword) {
       setError('New passwords do not match');
       setIsLoading(false);
       return;
     }
-    
+
     if (!passwordValidation.isValid) {
       setError('Password does not meet requirements');
       setIsLoading(false);
       return;
     }
-    
+
     try {
       await updatePassword({ currentPassword, newPassword });
       setSuccess('Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
+
       // Close the modal after a short delay to show the success message
       setTimeout(() => {
         onClose();
@@ -105,14 +105,14 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">Change Password</h2>
-          <button 
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors" 
+          <button
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
             onClick={onClose}
           >
             ×
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">Current Password</label>
@@ -126,7 +126,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div className="space-y-2">
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">New Password</label>
             <input
@@ -138,7 +138,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
               minLength={8}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
-            
+
             {/* Password strength indicator */}
             {newPassword && (
               <div className="space-y-2">
@@ -149,12 +149,12 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className={`h-2 rounded-full transition-all duration-300 ${getStrengthColor(passwordValidation.strength)}`}
                     style={{ width: `${(passwordValidation.strength / 5) * 100}%` }}
                   ></div>
                 </div>
-                
+
                 {/* Password requirements */}
                 <div className="text-xs text-gray-600 space-y-1">
                   <div className="font-medium">Requirements:</div>
@@ -174,7 +174,7 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
               </div>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm New Password</label>
             <input
@@ -190,31 +190,31 @@ const PasswordChangeModal: React.FC<PasswordChangeModalProps> = ({ onClose }) =>
               <p className="text-sm text-red-600">Passwords do not match</p>
             )}
           </div>
-          
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded">
               {error}
             </div>
           )}
-          
+
           {success && (
             <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded">
               {success}
             </div>
           )}
-          
+
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={onClose}
               disabled={isLoading}
             >
               Cancel
             </button>
-            
-            <button 
-              type="submit" 
+
+            <button
+              type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading || !passwordValidation.isValid || newPassword !== confirmPassword}
             >

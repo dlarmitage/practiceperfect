@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { 
-  getGoals, 
-  createGoal as createGoalService, 
+import {
+  getGoals,
+  createGoal as createGoalService,
   updateGoal as updateGoalService,
   updateGoalSortOrder as updateGoalSortOrderService,
   incrementGoalCount as incrementGoalService,
   deleteGoal as deleteGoalService
-} from '../services/supabase';
+} from '../services/api';
 import { useAuth } from './AuthContext';
 import type { Goal } from '../types';
 
@@ -51,9 +51,9 @@ const GoalContext = createContext<GoalContextType>({
     throw new Error('Not implemented');
   },
   showInactive: false,
-  setShowInactive: () => {},
+  setShowInactive: () => { },
   sortMethod: 'newest',
-  setSortMethod: () => {},
+  setSortMethod: () => { },
   updateGoalOrder: async () => {
     throw new Error('Not implemented');
   },
@@ -91,7 +91,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
       if (showLoadingIndicator) {
         setLoading(true);
       }
-      
+
       const goalsData = await getGoals(sortMethod);
       setGoals(goalsData);
       setInitialLoadComplete(true);
@@ -112,7 +112,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
       setLoading(false);
     }
   }, [user]);
-  
+
   // When sort method changes, fetch without showing loading indicator
   useEffect(() => {
     if (user && initialLoadComplete) {
@@ -124,7 +124,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
     try {
       // Create the goal using the service
       const newGoal = await createGoalService(goal);
-      
+
       // Update the local state with the new goal
       setGoals(prevGoals => {
         // Make sure we don't add duplicates
@@ -135,10 +135,10 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
           return [...prevGoals, newGoal];
         }
       });
-      
+
       // Fetch all goals to ensure we have the latest data, but don't show loading indicator
       fetchGoals(false);
-      
+
       return newGoal;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to create goal');
@@ -151,7 +151,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
   const updateGoal = async (id: string, updates: Partial<Omit<Goal, 'id' | 'createdAt' | 'user_id'>>): Promise<Goal> => {
     try {
       const updatedGoal = await updateGoalService(id, updates);
-      setGoals(prevGoals => 
+      setGoals(prevGoals =>
         prevGoals.map(goal => goal.id === id ? updatedGoal : goal)
       );
       return updatedGoal;
@@ -170,7 +170,7 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
       if (!currentGoal) {
         throw new Error('Goal not found');
       }
-      
+
       // Create an optimistically updated version of the goal
       const optimisticGoal = {
         ...currentGoal,
@@ -178,37 +178,37 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
         updatedAt: new Date().toISOString(),
         lastClicked: new Date().toISOString()
       };
-      
+
       // Update the UI immediately with the optimistic update
-      setGoals(prevGoals => 
+      setGoals(prevGoals =>
         prevGoals.map(goal => goal.id === id ? optimisticGoal : goal)
       );
-      
+
       // Then perform the actual database update in the background
       const updatedGoal = await incrementGoalService(id);
-      
+
       // Update the UI again with the actual data from the server (if needed)
-      setGoals(prevGoals => 
+      setGoals(prevGoals =>
         prevGoals.map(goal => goal.id === id ? updatedGoal : goal)
       );
-      
+
       return updatedGoal;
     } catch (err) {
       // If there's an error, revert the optimistic update
       const currentGoal = goals.find(goal => goal.id === id);
       if (currentGoal) {
-        setGoals(prevGoals => 
+        setGoals(prevGoals =>
           prevGoals.map(goal => goal.id === id ? currentGoal : goal)
         );
       }
-      
+
       const error = err instanceof Error ? err : new Error('Failed to increment goal count');
       console.error('Error incrementing goal count:', error);
       setError(error);
       throw error;
     }
   };
-  
+
   const decrementGoalCount = async (id: string): Promise<Goal> => {
     try {
       // Find the current goal to get its data
@@ -216,12 +216,12 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
       if (!currentGoal) {
         throw new Error('Goal not found');
       }
-      
+
       // Don't allow negative counts
       if (currentGoal.count <= 0) {
         return currentGoal;
       }
-      
+
       // Create an optimistically updated version of the goal
       const optimisticGoal = {
         ...currentGoal,
@@ -229,31 +229,31 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
         updatedAt: new Date().toISOString(),
         lastClicked: new Date().toISOString()
       };
-      
+
       // Update the UI immediately with the optimistic update
-      setGoals(prevGoals => 
+      setGoals(prevGoals =>
         prevGoals.map(goal => goal.id === id ? optimisticGoal : goal)
       );
-      
+
       // Then perform the actual database update in the background
       // We'll need to implement this service function
       const updatedGoal = await updateGoal(id, { count: optimisticGoal.count });
-      
+
       // Update the UI again with the actual data from the server (if needed)
-      setGoals(prevGoals => 
+      setGoals(prevGoals =>
         prevGoals.map(goal => goal.id === id ? updatedGoal : goal)
       );
-      
+
       return updatedGoal;
     } catch (err) {
       // If there's an error, revert the optimistic update
       const currentGoal = goals.find(goal => goal.id === id);
       if (currentGoal) {
-        setGoals(prevGoals => 
+        setGoals(prevGoals =>
           prevGoals.map(goal => goal.id === id ? currentGoal : goal)
         );
       }
-      
+
       const error = err instanceof Error ? err : new Error('Failed to decrement goal count');
       console.error('Error decrementing goal count:', error);
       setError(error);
@@ -263,23 +263,23 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
 
   const deleteGoal = async (id: string): Promise<boolean> => {
     try {
-  
+
       const result = await deleteGoalService(id);
-      
+
       if (result) {
 
         // Update the local state by filtering out the deleted goal
         setGoals(prevGoals => prevGoals.filter(goal => goal.id !== id));
-        
+
         // Also fetch goals to ensure our state is in sync with the database, but don't show loading indicator
         try {
           await fetchGoals(false);
-  
+
         } catch (fetchErr) {
           console.warn('GoalContext: Failed to refresh goals after deletion', fetchErr);
           // Continue with the deletion process even if refresh fails
         }
-        
+
         return true;
       } else {
         throw new Error('Goal deletion returned false');
@@ -295,11 +295,11 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
   // Function to update goal order
   const updateGoalOrder = async (goalId: string, newOrder: number): Promise<void> => {
     try {
-  
-      
+
+
       // Use the special updateGoalSortOrder function that preserves timestamps
       await updateGoalSortOrderService(goalId, newOrder);
-      
+
       // Refresh goals after updating order, but don't show loading indicator
       fetchGoals(false);
     } catch (err) {
@@ -311,14 +311,14 @@ export const GoalProvider: React.FC<GoalProviderProps> = ({ children }) => {
   };
 
   return (
-    <GoalContext.Provider 
-      value={{ 
-        goals, 
-        loading, 
-        error, 
-        createGoal, 
-        updateGoal, 
-        incrementGoalCount, 
+    <GoalContext.Provider
+      value={{
+        goals,
+        loading,
+        error,
+        createGoal,
+        updateGoal,
+        incrementGoalCount,
         decrementGoalCount,
         deleteGoal,
         showInactive,

@@ -34,6 +34,7 @@ export interface Goal {
   startDate: string;
   dueDate?: string;
   link?: string;
+  sortOrder?: number;
   createdAt: string;
   updatedAt: string;
   lastClicked?: string; // ISO date string for the last time the goal was clicked

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { resetPassword } from '../services/supabase';
+import { resetPassword } from '../services/api';
 import { Link } from 'react-router-dom';
 
 /**
@@ -39,8 +39,8 @@ const ForgotPassword: React.FC = () => {
             We've sent password reset instructions to your email.
           </p>
           <div className="mt-6">
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="block w-full text-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Back to Sign In
@@ -61,14 +61,14 @@ const ForgotPassword: React.FC = () => {
         <p className="text-center text-gray-600 mb-6">
           Enter your email address and we'll send you instructions to reset your password.
         </p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
               <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <label htmlFor="email-address" className="block text-sm font-medium text-gray-700">
               Email address
@@ -93,7 +93,7 @@ const ForgotPassword: React.FC = () => {
           >
             {loading ? 'Sending...' : 'Send reset instructions'}
           </button>
-          
+
           <div className="text-center mt-4">
             <Link to="/login" className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-sm">
               Back to Sign In

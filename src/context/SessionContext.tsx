@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '../types';
-import { getSessions, getSessionsByGoal, createSession, updateSession, deleteSession } from '../services/supabase';
+import { getSessions, getSessionsByGoal, createSession, updateSession, deleteSession } from '../services/api';
 
 interface SessionContextType {
   sessions: Session[];
@@ -37,14 +37,14 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
   const [error, setError] = useState<Error | null>(null);
   const [initialized, setInitialized] = useState<boolean>(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState<boolean>(false);
-  
+
   // Function to fetch sessions with control over loading indicator
   const fetchSessionsWithLoading = async (showLoadingIndicator = true, fetchFunction: () => Promise<Session[]>) => {
     if (showLoadingIndicator) {
       setIsLoading(true);
     }
     setError(null);
-    
+
     try {
       const data = await fetchFunction();
       setSessions(data || []);
@@ -58,24 +58,24 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
       setInitialized(true);
     }
   };
-  
+
   // Initial data load when component mounts
   useEffect(() => {
     const initialLoad = async () => {
-  
+
       await fetchSessionsWithLoading(true, getSessions);
     };
-    
+
     initialLoad();
   }, []);
-  
+
   // Handle activeGoalId changes after initialization
   useEffect(() => {
     // Skip if not initialized or during initial render
     if (!initialized) return;
-    
 
-    
+
+
     if (activeGoalId) {
       // Don't show loading indicator when switching goals after initial load
       fetchSessionsByGoal(activeGoalId, !initialDataLoaded);
@@ -108,9 +108,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     }
     setError(null);
     try {
-  
+
       const data = await getSessions();
-      
+
       setSessions(data || []);
       setInitialDataLoaded(true);
     } catch (err) {
@@ -144,7 +144,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({ children }) =>
     setError(null);
     try {
       const updatedSession = await updateSession(id, updates);
-      setSessions(prev => prev.map(session => 
+      setSessions(prev => prev.map(session =>
         session.id === id ? updatedSession : session
       ));
       return updatedSession;

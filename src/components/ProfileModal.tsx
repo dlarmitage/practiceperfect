@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { updateProfile, updateEmail } from '../services/supabase';
+import { updateProfile, updateEmail } from '../services/api';
 import ConfirmationModal from './ConfirmationModal';
 import PasswordChangeModal from './PasswordChangeModal';
 
@@ -10,7 +10,7 @@ interface ProfileModalProps {
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const { user, setUser, deleteAccount } = useAuth();
-  
+
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -23,30 +23,30 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  
+
   useEffect(() => {
     if (user) {
       setFirstName(user.user_metadata?.display_name || '');
       setEmail(user.email || '');
     }
   }, [user]);
-  
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       // Update profile information
       await updateProfile({ firstName });
-      
+
       // Update email if password is provided
       if (currentPassword) {
         await updateEmail({ email, password: currentPassword });
         setCurrentPassword('');
       }
-      
+
       // Update the user in context
       if (user) {
         setUser({
@@ -57,7 +57,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           }
         });
       }
-      
+
       setSuccess('Profile updated successfully!');
     } catch (err) {
       setError('Failed to update profile. If you tried to change your email, please check your password.');
@@ -66,20 +66,20 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       setIsLoading(false);
     }
   };
-  
+
   const handlePasswordModalOpen = () => {
     setShowPasswordModal(true);
   };
-  
+
   const handlePasswordModalClose = () => {
     setShowPasswordModal(false);
   };
-  
+
   const handleDeleteAccountRequest = () => {
     setDeleteConfirmPassword('');
     setShowDeleteConfirmation(true);
   };
-  
+
   const confirmDeleteAccount = async () => {
     if (!deleteConfirmPassword) {
       setDeleteError('Password is required');
@@ -89,13 +89,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     try {
       setIsLoading(true);
       const result = await deleteAccount!(deleteConfirmPassword);
-      
+
       // Close the confirmation modal first
       setShowDeleteConfirmation(false);
-      
+
       // Show success message in the main profile modal
       setDeleteSuccess(result.message);
-      
+
       // Redirect to login page after a short delay
       setTimeout(() => {
         window.location.href = '/login';
@@ -106,21 +106,21 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">User Profile</h2>
-          <button 
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors" 
+          <button
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
             onClick={onClose}
             aria-label="Close"
           >
             &times;
           </button>
         </div>
-        
+
         <div className="p-4">
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
           {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">{success}</div>}
@@ -130,7 +130,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
               <p className="mt-2 text-sm">Redirecting to login page...</p>
             </div>
           )}
-          
+
           <form onSubmit={handleUpdate} className="space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-700 border-b border-gray-200 pb-2">Personal Information</h3>
@@ -147,7 +147,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                 />
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-700 border-b border-gray-200 pb-2">Account Settings</h3>
               <div className="space-y-2">
@@ -161,7 +161,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
                   Current Password
@@ -177,20 +177,20 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center pt-4 border-t border-gray-200">
               <div className="flex space-x-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-danger text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleDeleteAccountRequest}
                   disabled={isLoading}
                 >
                   Delete Account
                 </button>
-                
-                <button 
-                  type="button" 
+
+                <button
+                  type="button"
                   className="btn btn-secondary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handlePasswordModalOpen}
                   disabled={isLoading}
@@ -198,9 +198,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                   Change Password
                 </button>
               </div>
-              
-              <button 
-                type="submit" 
+
+              <button
+                type="submit"
                 className="btn btn-primary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
               >
@@ -210,7 +210,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           </form>
         </div>
       </div>
-      
+
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         title="Delete Account"
@@ -238,10 +238,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         onCancel={() => setShowDeleteConfirmation(false)}
         isDanger={true}
       />
-      
+
       {showPasswordModal && (
-        <PasswordChangeModal 
-          onClose={handlePasswordModalClose} 
+        <PasswordChangeModal
+          onClose={handlePasswordModalClose}
         />
       )}
     </div>
