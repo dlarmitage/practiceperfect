@@ -1,13 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
-import { db } from '../../src/db/drizzle';
-import { users, magicTokens } from '../../src/db/schema';
+import { getDb, magicTokens } from '../lib/db';
 import { eq } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@practiceperfect.app';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
@@ -20,6 +19,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!email) {
             return res.status(400).json({ error: 'Email is required' });
         }
+
+        const db = getDb();
 
         // Generate a secure token
         const token = randomBytes(32).toString('hex');
@@ -58,13 +59,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (emailError) {
             console.error('Resend error:', emailError);
-            return res.status(500).json({ error: 'Failed to send email' });
+            return res.status(500).json({ error: 'Failed to send email', details: emailError.message });
         }
 
         return res.status(200).json({ success: true, message: 'Magic link sent' });
 
     } catch (error) {
         console.error('Login error:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 }

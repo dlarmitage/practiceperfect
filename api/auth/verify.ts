@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../src/db/drizzle';
-import { users, magicTokens } from '../../src/db/schema';
+import { getDb, users, magicTokens } from '../lib/db';
 import { eq } from 'drizzle-orm';
 import { signToken, setAuthCookie } from '../utils/auth';
 
@@ -15,6 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+        const db = getDb();
+
         // Find the token
         const [magicToken] = await db.select()
             .from(magicTokens)
@@ -60,6 +61,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     } catch (error) {
         console.error('Verify error:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 }

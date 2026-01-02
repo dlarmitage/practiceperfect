@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../src/db/drizzle';
-import { users } from '../../src/db/schema';
+import { getDb, users } from '../lib/db';
 import { getAuthTokenFromRequest, verifyToken } from '../utils/auth';
 import { eq } from 'drizzle-orm';
 
@@ -20,6 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(200).json({ user: null });
         }
 
+        const db = getDb();
         const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
         if (!user) {
             return res.status(200).json({ user: null });

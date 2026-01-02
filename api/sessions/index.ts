@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../src/db/drizzle';
-import { sessions } from '../../src/db/schema';
+import { getDb, sessions } from '../lib/db';
 import { getAuthTokenFromRequest, verifyToken } from '../utils/auth';
 import { eq, desc, and } from 'drizzle-orm';
 
@@ -15,6 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!payload) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
+
+        const db = getDb();
 
         if (req.method === 'GET') {
             const goalId = req.query.goalId as string | undefined;
