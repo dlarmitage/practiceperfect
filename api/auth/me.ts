@@ -5,21 +5,21 @@ import { getAuthTokenFromRequest, verifyToken } from '../utils/auth';
 import { eq } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-
-    const token = getAuthTokenFromRequest(req);
-    if (!token) {
-        return res.status(200).json({ user: null });
-    }
-
-    const payload = verifyToken(token);
-    if (!payload) {
-        return res.status(200).json({ user: null });
-    }
-
     try {
+        if (req.method !== 'GET') {
+            return res.status(405).json({ error: 'Method Not Allowed' });
+        }
+
+        const token = getAuthTokenFromRequest(req);
+        if (!token) {
+            return res.status(200).json({ user: null });
+        }
+
+        const payload = verifyToken(token);
+        if (!payload) {
+            return res.status(200).json({ user: null });
+        }
+
         const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
         if (!user) {
             return res.status(200).json({ user: null });
@@ -28,6 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
     } catch (error) {
         console.error('Auth check error:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({
+            error: 'Internal Server Error',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 }
