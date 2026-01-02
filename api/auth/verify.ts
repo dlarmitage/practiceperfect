@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb, users, magicTokens } from '../utils/db';
+import { getDb, users, magicTokens, signToken, setAuthCookie } from '../utils/auth';
 import { eq } from 'drizzle-orm';
-import { signToken, setAuthCookie } from '../utils/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
@@ -28,7 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Check if expired
         if (new Date() > magicToken.expiresAt) {
-            // Delete expired token
             await db.delete(magicTokens).where(eq(magicTokens.id, magicToken.id));
             return res.status(400).json({ error: 'Token has expired' });
         }
@@ -40,7 +38,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .limit(1);
 
         if (!user) {
-            // Create new user
             [user] = await db.insert(users).values({
                 email: magicToken.email,
             }).returning();

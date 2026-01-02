@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb, sessions } from '../utils/db';
-import { getAuthTokenFromRequest, verifyToken } from '../utils/auth';
+import { getDb, sessions, getAuthTokenFromRequest, verifyToken } from '../utils/auth';
 import { eq, and } from 'drizzle-orm';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

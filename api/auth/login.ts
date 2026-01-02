@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
-import { getDb, magicTokens } from '../utils/db';
+import { getDb, magicTokens } from '../utils/auth';
 import { eq } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 
