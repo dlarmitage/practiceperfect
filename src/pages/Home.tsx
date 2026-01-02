@@ -19,12 +19,12 @@ import { calculateGoalStatus } from '../utils/goalUtils';
  */
 const Home: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { 
-    goals, 
-    loading: goalsLoading, 
-    createGoal, 
-    updateGoal, 
-    incrementGoalCount, 
+  const {
+    goals,
+    loading: goalsLoading,
+    createGoal,
+    updateGoal,
+    incrementGoalCount,
     decrementGoalCount,
     deleteGoal,
     fetchGoals,
@@ -34,7 +34,7 @@ const Home: React.FC = () => {
     updateGoalOrder
   } = useGoals();
   const { setActiveGoalId } = useSession();
-  
+
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   // Add ref to track when to update goal statuses (without affecting welcome message)
   const statusUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,13 +51,13 @@ const Home: React.FC = () => {
   const setIsPWA = useState(false)[1];
   const setShowPWAPrompt = useState(false)[1];
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
-  
+
   // Toast notification state for drag instruction
   const [showDragToast, setShowDragToast] = useState(false);
-  
+
   // Ref to track if we're currently reordering goals
   const isReordering = useRef(false);
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,35 +65,35 @@ const Home: React.FC = () => {
       navigate('/login');
     }
   }, [user, authLoading, navigate]);
-  
+
   // Check if the app is running as a PWA and if we should show the install prompt
   useEffect(() => {
     // Check if app is running as PWA
     const isPWAStatus = isRunningAsPWA();
     setIsPWA(isPWAStatus);
-    
+
     // Don't show prompt if already running as PWA
     if (isPWAStatus) return;
-    
+
     // Check if user has dismissed the prompt permanently
     const dontShowAgain = localStorage.getItem('pwa_install_dont_show_again');
     if (dontShowAgain === 'true') return;
-    
+
     // Only show prompt if user has been active (has goals)
     if (goals.length > 0) {
       // Wait a moment before showing the modal for better UX
       const timer = setTimeout(() => {
         setShowPWAPrompt(true);
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [goals.length]);
-  
+
   // Show drag instruction toast when custom mode is selected
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    
+
     if (sortMethod === 'custom' && initialDataLoaded) {
       setShowDragToast(true);
       timer = setTimeout(() => {
@@ -103,12 +103,12 @@ const Home: React.FC = () => {
       // Hide toast when switching away from custom mode
       setShowDragToast(false);
     }
-    
+
     return () => {
       if (timer) clearTimeout(timer);
     };
   }, [sortMethod, initialDataLoaded]);
-  
+
   // Handle beforeinstallprompt event
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -117,9 +117,9 @@ const Home: React.FC = () => {
       // Stash the event so it can be triggered later
       window.deferredPrompt = e;
     };
-    
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
@@ -145,21 +145,21 @@ const Home: React.FC = () => {
   const generateWelcomeMessage = () => {
     // Get the user's first name from user metadata if available
     const firstName = user?.user_metadata?.display_name || '';
-    
+
     if (goals.length > 0) {
       // Select a random motivational message from the array
       const randomIndex = Math.floor(Math.random() * motivationalMessages.length);
       const randomMessage = motivationalMessages[randomIndex];
-      
+
       // Create the welcome message with the user's first name and the random motivational message
-      const welcomeMsg = firstName 
+      const welcomeMsg = firstName
         ? `Welcome back, ${firstName}. ${randomMessage}`
         : `Welcome back. ${randomMessage}`;
-      
+
       return welcomeMsg;
     } else {
       // For users with no goals, use a different message encouraging them to create goals
-      const defaultMessage = firstName 
+      const defaultMessage = firstName
         ? `Welcome to PracticePerfect, ${firstName}! Create your first goal to start tracking your practice sessions.`
         : 'Welcome to PracticePerfect! Create your first goal to start tracking your practice sessions.';
       return defaultMessage;
@@ -171,62 +171,62 @@ const Home: React.FC = () => {
   const welcomeMessageSet = useRef(false);
   // Store the goals length to avoid unnecessary welcome message updates
   const goalsLengthRef = useRef(0);
-  
+
   useEffect(() => {
     // Only set the welcome message when we're sure goals are loaded and initialDataLoaded is true
     // And only if we haven't already set it OR if the goals array length has changed (new user, first goal)
-    const shouldUpdateWelcomeMessage = 
-      initialDataLoaded && 
-      !goalsLoading && 
-      user && 
+    const shouldUpdateWelcomeMessage =
+      initialDataLoaded &&
+      !goalsLoading &&
+      user &&
       (!welcomeMessageSet.current || goalsLengthRef.current !== goals.length);
-    
+
     if (shouldUpdateWelcomeMessage) {
       // Update our refs to track state
       welcomeMessageSet.current = true;
       goalsLengthRef.current = goals.length;
-      
+
       // Wait a bit to ensure all data processing is complete
       const timer = setTimeout(() => {
         const message = generateWelcomeMessage();
         setWelcomeMessage(message);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // Cleanup function to reset state when component unmounts
     return () => {
       welcomeMessageSet.current = false;
     };
   }, [initialDataLoaded, goalsLoading, user, motivationalMessages]);
-  
+
   // This effect sets up event-driven goal status updates that only trigger when needed
   useEffect(() => {
     // Only set up if we have goals and the user is logged in
     if (goals.length === 0 || !user || isFormOpen) return;
-    
+
     // Flag to prevent multiple simultaneous checks
     let isCheckingGoals = false;
-    
+
     // Track goals that need status updates and when they should update
-    const goalUpdateTimes: {[goalId: string]: {goal: Goal, updateTime: number}} = {};
-    
+    const goalUpdateTimes: { [goalId: string]: { goal: Goal, updateTime: number } } = {};
+
     // Calculate next update time for each goal based on its cadence
     goals.forEach(goal => {
       // Skip completed goals or inactive goals
       if (goal.completed || !goal.isActive) return;
-      
+
       // Calculate when this goal should next update its status
       let nextUpdateTime: number | null = null;
-      
+
       if (goal.cadence === 'hourly' && goal.targetCount > 0) {
         // For hourly goals, calculate exact time when it will be out of cadence
         const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
         const minutesPerUpdate = 60 / goal.targetCount;
         const msUntilOutOfCadence = minutesPerUpdate * 60 * 1000;
         nextUpdateTime = lastInteraction.getTime() + msUntilOutOfCadence;
-      } 
+      }
       else if (goal.cadence === 'daily' && goal.targetCount > 0) {
         // For daily goals
         const lastInteraction = goal.lastClicked ? new Date(goal.lastClicked) : new Date(goal.startDate);
@@ -241,7 +241,7 @@ const Home: React.FC = () => {
         const msUntilOutOfCadence = daysPerUpdate * 24 * 60 * 60 * 1000;
         nextUpdateTime = lastInteraction.getTime() + msUntilOutOfCadence;
       }
-      
+
       // If we calculated a valid update time, store it
       if (nextUpdateTime !== null) {
         // Only add goals that will need updates in the future
@@ -254,7 +254,7 @@ const Home: React.FC = () => {
         }
       }
     });
-    
+
     // Function to check and update goal statuses
     const checkAndUpdateGoals = async () => {
       if (isCheckingGoals) return;
@@ -311,10 +311,10 @@ const Home: React.FC = () => {
       }
     };
 
-    
+
     // Start the initial check
     checkAndUpdateGoals();
-    
+
     return () => {
       // Clean up any pending timeout
       if (statusUpdateTimerRef.current) {
@@ -330,7 +330,7 @@ const Home: React.FC = () => {
       console.error('Error incrementing goal count:', error);
     }
   };
-  
+
   const handleGoalDecrement = async (goalId: string) => {
     try {
       await decrementGoalCount(goalId);
@@ -357,7 +357,7 @@ const Home: React.FC = () => {
       if (selectedGoal) {
         // Update existing goal
         await updateGoal(selectedGoal.id, goalData);
-    
+
       } else if (user) {
         // Create a new goal
         const goalToCreate = {
@@ -373,11 +373,11 @@ const Home: React.FC = () => {
           link: goalData.link,
           user_id: user.id // Include user_id to match the expected type
         };
-        
+
         // Create the goal and store the result
         await createGoal(goalToCreate);
-    
-        
+
+
         // The context should have already updated the goals array,
         // but we'll force a refresh of the goals list just to be sure
         setTimeout(() => {
@@ -386,7 +386,7 @@ const Home: React.FC = () => {
           // setIsLoading removed (was unused)
         }, 100);
       }
-      
+
       // Close the form
       setIsFormOpen(false);
       setSelectedGoal(null);
@@ -406,42 +406,42 @@ const Home: React.FC = () => {
       setShowDeleteConfirmation(true);
     }
   };
-  
+
   const confirmDeleteGoal = async () => {
     if (selectedGoal) {
       try {
-    
+
         // Set loading state while deletion is in progress
         // setIsLoading removed (was unused)
-        
+
         await deleteGoal(selectedGoal.id);
 
-        
+
         setShowDeleteConfirmation(false);
         setIsFormOpen(false);
         setSelectedGoal(null);
-        
+
         // Ensure UI is refreshed
         // setIsLoading removed (was unused)
       } catch (error) {
         console.error('Home: Error deleting goal:', error);
         // Show error in UI if needed
         // setIsLoading removed (was unused)
-        
+
         // Even if there's an error, close the modal
         setShowDeleteConfirmation(false);
       }
     }
   };
-  
+
   const cancelDeleteGoal = () => {
     setShowDeleteConfirmation(false);
   };
 
-  const filteredGoals = showInactive 
-    ? goals 
+  const filteredGoals = showInactive
+    ? goals
     : goals.filter(goal => goal.isActive);
-    
+
   // Track if we're currently dragging to prevent click events
   const isDragging = useRef(false);
   // Track when the last drag ended to prevent clicks immediately after
@@ -450,22 +450,22 @@ const Home: React.FC = () => {
   const touchStartY = useRef(0);
   const touchStartX = useRef(0);
   const touchedGoal = useRef<Goal | null>(null);
-  
+
   // Check if device is mobile
   // Removed unused isMobile state
   useEffect(() => {
     const checkIfMobile = () => {
       // setIsMobile removed (was unused)
     };
-    
+
     checkIfMobile();
     window.addEventListener('resize', checkIfMobile);
-    
+
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
   }, []);
-  
+
   // Handle drag start for custom sorting
   const handleDragStart = (goal: Goal) => {
     // If not already in custom sort mode, switch to it
@@ -477,7 +477,7 @@ const Home: React.FC = () => {
     // Set a timestamp when drag starts
     lastDragEndTime.current = Date.now();
   };
-  
+
   // Handle touch start for mobile drag and drop
   const handleTouchStart = (e: React.TouchEvent, goal: Goal) => {
     // Store the initial touch position
@@ -485,67 +485,67 @@ const Home: React.FC = () => {
     touchStartX.current = e.touches[0].clientX;
     touchedGoal.current = goal;
   };
-  
+
   // Handle touch move for mobile drag and drop
   const handleTouchMove = (e: React.TouchEvent, goal: Goal) => {
     if (!touchedGoal.current) return;
-    
+
     // If not already in custom sort mode, switch to it
     if (sortMethod !== 'custom') {
       setSortMethod('custom');
     }
-    
+
     const touchY = e.touches[0].clientY;
     const touchX = e.touches[0].clientX;
-    
+
     // If we've moved enough to consider it a drag
     const moveThreshold = 10; // pixels
-    if (Math.abs(touchY - touchStartY.current) > moveThreshold || 
-        Math.abs(touchX - touchStartX.current) > moveThreshold) {
+    if (Math.abs(touchY - touchStartY.current) > moveThreshold ||
+      Math.abs(touchX - touchStartX.current) > moveThreshold) {
       // Once we determine it's a drag, prevent default browser behavior
       // This prevents the page from scrolling or the browser from interpreting
       // this as a swipe gesture
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Set dragging state
       isDragging.current = true;
       setDraggedGoal(touchedGoal.current);
       setDragOverGoal(goal);
-      
+
       // Add a class to the body to prevent scrolling
       document.body.classList.add('dragging');
     }
   };
-  
+
   // Handle touch end for mobile drag and drop
   const handleTouchEnd = async (e: React.TouchEvent, targetGoal: Goal) => {
     if (!touchedGoal.current) return;
-    
+
     // Remove the dragging class from the body
     document.body.classList.remove('dragging');
-    
+
     // If we were dragging and have a target
     if (isDragging.current && draggedGoal && dragOverGoal) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Prevent multiple reordering operations at once
       if (isReordering.current) return;
       isReordering.current = true;
-      
+
       try {
         // setIsLoading removed (was unused)
-        
+
         // Find the indices of the dragged and target goals
         const draggedIndex = filteredGoals.findIndex(g => g.id === draggedGoal.id);
         const targetIndex = filteredGoals.findIndex(g => g.id === targetGoal.id);
-        
+
         if (draggedIndex === -1 || targetIndex === -1) return;
-        
+
         // Calculate new sort orders for the dragged goal
         let newSortOrder: number;
-        
+
         if (targetIndex === 0) {
           // If dropping at the beginning, use a value smaller than the first item
           newSortOrder = ((targetGoal as any).sortOrder || 0) - 10;
@@ -557,7 +557,7 @@ const Home: React.FC = () => {
           const nextGoal = filteredGoals[targetIndex + (draggedIndex < targetIndex ? 1 : -1)];
           newSortOrder = (((targetGoal as any).sortOrder || 0) + ((nextGoal as any).sortOrder || 0)) / 2;
         }
-        
+
         // Update the sort order in the database - directly use updateGoalOrder to preserve timestamp
         await updateGoalOrder(draggedGoal.id, newSortOrder);
       } catch (error) {
@@ -569,17 +569,17 @@ const Home: React.FC = () => {
         isReordering.current = false;
       }
     }
-    
+
     // Reset touch tracking
     touchedGoal.current = null;
     lastDragEndTime.current = Date.now();
-    
+
     // Set a timeout before allowing clicks again
     setTimeout(() => {
       isDragging.current = false;
     }, 300);
   };
-  
+
   // Handle drag over for custom sorting
   const handleDragOver = (e: React.DragEvent, goal: Goal) => {
     e.preventDefault();
@@ -591,28 +591,28 @@ const Home: React.FC = () => {
   const handleDrop = async (e: React.DragEvent, targetGoal: Goal) => {
     e.preventDefault();
     if (!draggedGoal || draggedGoal.id === targetGoal.id) return;
-    
+
     // If not already in custom sort mode, switch to it
     if (sortMethod !== 'custom') {
       setSortMethod('custom');
     }
-    
+
     // Prevent multiple reordering operations at once
     if (isReordering.current) return;
     isReordering.current = true;
-    
+
     try {
       // setIsLoading removed (was unused)
-      
+
       // Find the indices of the dragged and target goals
       const draggedIndex = filteredGoals.findIndex(g => g.id === draggedGoal.id);
       const targetIndex = filteredGoals.findIndex(g => g.id === targetGoal.id);
-      
+
       if (draggedIndex === -1 || targetIndex === -1) return;
-      
+
       // Calculate new sort orders for the dragged goal
       let newSortOrder: number;
-      
+
       if (targetIndex === 0) {
         // If dropping at the beginning, use a value smaller than the first item
         newSortOrder = ((targetGoal as any).sortOrder || 0) - 10;
@@ -624,7 +624,7 @@ const Home: React.FC = () => {
         const nextGoal = filteredGoals[targetIndex + (draggedIndex < targetIndex ? 1 : -1)];
         newSortOrder = (((targetGoal as any).sortOrder || 0) + ((nextGoal as any).sortOrder || 0)) / 2;
       }
-      
+
       // Update the sort order in the database
       await updateGoalOrder(draggedGoal.id, newSortOrder);
     } catch (error) {
@@ -636,15 +636,15 @@ const Home: React.FC = () => {
       isReordering.current = false;
     }
   };
-  
+
   // Handle drag end
   const handleDragEnd = () => {
     setDraggedGoal(null);
     setDragOverGoal(null);
-    
+
     // Record when the drag ended
     lastDragEndTime.current = Date.now();
-    
+
     // Set a timeout before allowing clicks again
     // This prevents the click event from firing immediately after drag ends
     setTimeout(() => {
@@ -703,14 +703,14 @@ const Home: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [goalsLoading]);
-  
+
   // When sort method changes, fetch without showing loading indicator
   useEffect(() => {
     if (user && initialDataLoaded) {
       fetchGoals(false);
     }
   }, [sortMethod]);
-  
+
   // Only show loading during initial authentication
   if (authLoading && !user) {
     return (
@@ -740,52 +740,48 @@ const Home: React.FC = () => {
                 <h2 className="text-xl font-medium text-gray-700">{welcomeMessage}</h2>
               </div>
             )}
-            
+
             {/* Mobile-friendly sort selector */}
             <div className="flex justify-center mt-4 mb-6">
               <div className="inline-flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setSortMethod('newest')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    sortMethod === 'newest'
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${sortMethod === 'newest'
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   Newest First
                 </button>
                 <button
                   onClick={() => setSortMethod('oldest')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    sortMethod === 'oldest'
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${sortMethod === 'oldest'
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   Oldest First
                 </button>
                 <button
                   onClick={() => setSortMethod('custom')}
-                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                    sortMethod === 'custom'
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${sortMethod === 'custom'
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   Custom Order
                 </button>
               </div>
             </div>
-            
+
             {/* Toast notification for drag instruction */}
-            <div 
-              className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-600 ease-out ${
-                showDragToast 
-                  ? 'opacity-100 translate-y-0 scale-100' 
+            <div
+              className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-600 ease-out ${showDragToast
+                  ? 'opacity-100 translate-y-0 scale-100'
                   : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
-              }`}
+                }`}
             >
-              <div 
+              <div
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg cursor-pointer hover:bg-blue-700 transition-colors"
                 onClick={() => {
                   setShowDragToast(false);
@@ -797,7 +793,7 @@ const Home: React.FC = () => {
                 <span className="text-sm font-medium">Drag the three lines to reorder goals</span>
               </div>
             </div>
-            
+
             {/* Show help info only when there are no goals */}
             {filteredGoals.length === 0 ? (
               <div className="mt-6 bg-blue-50 p-5 rounded-lg border border-blue-100 text-left max-w-lg mx-auto">
@@ -866,7 +862,15 @@ const Home: React.FC = () => {
                   </li>
                 </ul>
                 <div className="mt-4 pt-3 border-t border-blue-100 text-center">
-                  <span className="text-blue-700 text-sm font-medium">Start by creating your first goal!</span>
+                  <button
+                    onClick={() => { setSelectedGoal(null); setIsFormOpen(true); }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Create your first goal
+                  </button>
                 </div>
               </div>
             ) : (
@@ -881,51 +885,51 @@ const Home: React.FC = () => {
             {filteredGoals.map((goal) => {
               const isDraggable = sortMethod === 'custom';
               return (
-                <div 
+                <div
                   key={goal.id}
                   className={`relative ${dragOverGoal?.id === goal.id ? 'border-2 border-blue-400 rounded-lg' : ''} ${draggedGoal?.id === goal.id ? 'opacity-50 transform scale-105' : ''}`}
                   onTouchStart={(e) => handleTouchStart(e, goal)}
                   onTouchMove={(e) => handleTouchMove(e, goal)}
                   onTouchEnd={(e) => handleTouchEnd(e, goal)}
                 >
-                {/* Drag handle removed - now using the one in GoalButton */}
-                <div 
-                  onClick={(e) => {
-                    // Prevent click events during or immediately after dragging
-                    if (sortMethod === 'custom' && (
-                      isDragging.current || 
-                      (Date.now() - lastDragEndTime.current < 500)
-                    )) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      return;
-                    }
-                  }}
-                >
-                  <GoalButton
-                    goal={goal}
-                    status={goalStatuses[goal.id] || ''}
-                    onClick={() => handleGoalClick(goal.id)}
-                    onDecrement={() => handleGoalDecrement(goal.id)}
-                    onEdit={() => handleGoalEdit(goal)}
-                    onStartSession={() => setActiveGoalId(goal.id)}
-                    draggable={isDraggable}
-                    onDragStart={() => {
-                      handleDragStart(goal);
+                  {/* Drag handle removed - now using the one in GoalButton */}
+                  <div
+                    onClick={(e) => {
+                      // Prevent click events during or immediately after dragging
+                      if (sortMethod === 'custom' && (
+                        isDragging.current ||
+                        (Date.now() - lastDragEndTime.current < 500)
+                      )) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
                     }}
-                    onDragOver={(e) => handleDragOver(e, goal)}
-                    onDrop={(e) => handleDrop(e, goal)}
-                    onDragEnd={handleDragEnd}
-                  />
+                  >
+                    <GoalButton
+                      goal={goal}
+                      status={goalStatuses[goal.id] || ''}
+                      onClick={() => handleGoalClick(goal.id)}
+                      onDecrement={() => handleGoalDecrement(goal.id)}
+                      onEdit={() => handleGoalEdit(goal)}
+                      onStartSession={() => setActiveGoalId(goal.id)}
+                      draggable={isDraggable}
+                      onDragStart={() => {
+                        handleDragStart(goal);
+                      }}
+                      onDragOver={(e) => handleDragOver(e, goal)}
+                      onDrop={(e) => handleDrop(e, goal)}
+                      onDragEnd={handleDragEnd}
+                    />
 
+                  </div>
                 </div>
-              </div>
               );
             })}
           </div>
         )}
       </main>
-      
+
       {/* Goal form modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
@@ -939,7 +943,7 @@ const Home: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* Position selection modal for mobile */}
       {showPositionModal && selectedGoal && (
         <PositionSelectModal
@@ -950,10 +954,10 @@ const Home: React.FC = () => {
           onPositionSelect={async (goalId, newPosition) => {
             // Convert 1-based position to 0-based index
             const targetIndex = newPosition - 1;
-            
+
             // Calculate new sort order
             let newSortOrder: number;
-            
+
             if (targetIndex === 0) {
               // If moving to the beginning, use a value smaller than the first item
               newSortOrder = ((filteredGoals[0] as any).sortOrder || 0) - 10;
@@ -966,13 +970,13 @@ const Home: React.FC = () => {
               const nextGoal = filteredGoals[targetIndex + 1] || targetGoal;
               newSortOrder = (((targetGoal as any).sortOrder || 0) + ((nextGoal as any).sortOrder || 0)) / 2;
             }
-            
+
             // Update the goal's sort order
             await updateGoalOrder(goalId, newSortOrder);
           }}
         />
       )}
-      
+
       {/* Delete confirmation modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirmation}

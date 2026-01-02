@@ -56,12 +56,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to: email,
             subject: 'Sign in to PracticePerfect',
             html: `
-                <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #10B981;">PracticePerfect</h2>
-                    <p>Click the link below to sign in:</p>
-                    <a href="${magicLink}" style="display: inline-block; background: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">Sign In</a>
-                    <p style="color: #666; font-size: 14px;">This link expires in 15 minutes.</p>
-                </div>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 400px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 700; color: #10B981;">PracticePerfect</h1>
+                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #374151; line-height: 1.5;">Click the button below to sign in to your account:</p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="border-radius: 8px; background-color: #10B981;">
+                                        <a href="${magicLink}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">Sign In</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 24px 0 8px 0; font-size: 14px; color: #6b7280;">Or copy and paste this link into your browser:</p>
+                            <p style="margin: 0 0 24px 0; font-size: 12px; color: #3b82f6; word-break: break-all;"><a href="${magicLink}" style="color: #3b82f6; text-decoration: none;">${magicLink}</a></p>
+                            <p style="margin: 0; font-size: 13px; color: #9ca3af;">This link expires in 15 minutes.</p>
+                            <p style="margin: 16px 0 0 0; font-size: 12px; color: #d1d5db;">If you didn't request this email, you can safely ignore it.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
             `,
         });
 
