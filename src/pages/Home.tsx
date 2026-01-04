@@ -726,7 +726,7 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <main
-        className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-12"
+        className="flex-1 px-4 md:px-8 lg:px-12 pb-20"
         ref={mainRef}
         onTouchStart={handlePullTouchStart}
         onTouchMove={handlePullTouchMove}
@@ -993,7 +993,7 @@ const Home: React.FC = () => {
       {filteredGoals.length > 0 && !isFormOpen && (
         <button
           onClick={() => { setSelectedGoal(null); setIsFormOpen(true); }}
-          className="fixed bottom-24 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 z-40"
+          className="fixed bottom-24 right-6 w-14 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 z-40"
           aria-label="Add new goal"
         >
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
