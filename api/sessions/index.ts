@@ -70,7 +70,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (req.method === 'POST') {
             const data = req.body;
-            const [newSession] = await db.insert(sessions).values({ ...data, userId: payload.userId }).returning();
+            console.log('Creating session with data:', JSON.stringify(data));
+
+            // Map frontend fields to database fields
+            const sessionData = {
+                userId: payload.userId,
+                goalId: data.goalId || data.goal_id,
+                sessionDate: data.sessionDate ? new Date(data.sessionDate) : new Date(),
+                duration: data.duration || null,
+                mood: data.mood || null,
+                notes: data.notes || null,
+                location: data.location || null,
+            };
+
+            console.log('Mapped session data:', JSON.stringify(sessionData));
+            const [newSession] = await db.insert(sessions).values(sessionData).returning();
+            console.log('Created session:', JSON.stringify(newSession));
             return res.status(201).json(newSession);
         }
 
