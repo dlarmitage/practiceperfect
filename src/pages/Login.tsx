@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,7 +13,7 @@ const Login: React.FC = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
-  const { refreshUser } = useAuth(); // Assuming this exists or will be added to check auth status
+  const { } = useAuth(); // Assuming this exists or will be added to check auth status
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
