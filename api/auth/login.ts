@@ -11,6 +11,7 @@ const magicTokens = pgTable('magic_tokens', {
     id: uuid('id').defaultRandom().primaryKey(),
     email: text('email').notNull(),
     token: text('token').notNull().unique(),
+    code: text('code'),
     expiresAt: timestamp('expires_at').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -39,44 +40,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const APP_URL = process.env.APP_URL || 'http://localhost:5173';
         const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
-        // Generate token
-        const token = randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+        // Generate a random token for the magic link (UUID)
+        const token = crypto.randomUUID();
+
+        // Generate a 6-digit OTP code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
         // Delete existing tokens for this email
         await db.delete(magicTokens).where(eq(magicTokens.email, email));
 
-        // Store new token
-        await db.insert(magicTokens).values({ email, token, expiresAt });
+        // Store both token and code
+        await db.insert(magicTokens).values({
+            email,
+            token,
+            code,
+            expiresAt,
+        });
 
-        // Send email
-        const magicLink = `${APP_URL}/auth/verify?token=${token}`;
+        // Send email with both options
+        const magicLink = `${APP_URL}/api/auth/verify?token=${token}`;
+
         const { error: emailError } = await resend.emails.send({
-            from: FROM_EMAIL,
+            from: process.env.FROM_EMAIL || 'PracticePerfect <auth@practiceperfect.ambient.technology>',
             to: email,
             subject: 'Sign in to PracticePerfect',
             html: `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5;">
-        <tr>
-            <td align="center" style="padding: 40px 20px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 400px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <tr>
-                        <td style="padding: 40px 30px; text-align: center;">
-                            <h1 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 700; color: #10B981;">PracticePerfect</h1>
-                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #374151; line-height: 1.5;">Click the button below to sign in to your account:</p>
-                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
-                                <tr>
-                                    <td style="border-radius: 8px; background-color: #10B981;">
-                                        <a href="${magicLink}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">Sign In</a>
-                                    </td>
-                                </tr>
                             </table>
                             <p style="margin: 24px 0 8px 0; font-size: 14px; color: #6b7280;">Or copy and paste this link into your browser:</p>
                             <p style="margin: 0 0 24px 0; font-size: 12px; color: #3b82f6; word-break: break-all;"><a href="${magicLink}" style="color: #3b82f6; text-decoration: none;">${magicLink}</a></p>

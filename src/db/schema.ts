@@ -16,7 +16,8 @@ export const users = pgTable('users', {
 export const magicTokens = pgTable('magic_tokens', {
     id: uuid('id').defaultRandom().primaryKey(),
     email: text('email').notNull(),
-    token: text('token').notNull().unique(),
+    token: text('token').notNull().unique(), // UUID for magic link
+    code: text('code'), // 6-digit OTP code (optional for backward compat during deploy)
     expiresAt: timestamp('expires_at').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
