@@ -63,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const magicLink = `${APP_URL}/api/auth/verify?token=${token}`;
 
         const { error: emailError } = await resend.emails.send({
-            from: process.env.FROM_EMAIL || 'PracticePerfect <auth@practiceperfect.ambient.technology>',
+            from: 'PracticePerfect <admin@ambient.technology>',
             to: email,
             subject: 'Sign in to PracticePerfect',
             html: `
