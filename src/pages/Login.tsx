@@ -171,7 +171,13 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          <p className="text-sm text-emerald-700 font-medium mb-2">Resend code</p>
+          <button
+            onClick={handleEmailSubmit}
+            disabled={loading}
+            className="text-sm text-emerald-700 font-medium mb-2 hover:text-emerald-800 hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+          >
+            {loading ? 'Sending...' : 'Resend code'}
+          </button>
           <button
             onClick={() => setShowOtp(false)}
             className="text-sm text-gray-500 hover:text-gray-700"
