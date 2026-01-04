@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/**/*.ts": {
-      "includeFiles": "api/utils/**"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/goals/:id",

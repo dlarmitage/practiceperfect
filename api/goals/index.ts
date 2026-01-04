@@ -70,7 +70,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (req.method === 'POST') {
             const data = req.body;
-            console.log('Creating goal with data:', JSON.stringify(data));
 
             // Map frontend fields to database fields
             const goalData = {
@@ -88,9 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 sortOrder: data.sortOrder || 0,
             };
 
-            console.log('Mapped goal data:', JSON.stringify(goalData));
             const [newGoal] = await db.insert(goals).values(goalData).returning();
-            console.log('Created goal:', JSON.stringify(newGoal));
             return res.status(201).json(newGoal);
         }
 
