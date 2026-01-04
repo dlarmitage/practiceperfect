@@ -66,19 +66,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to: email,
             subject: 'Sign in to PracticePerfect',
             html: `
-                            </table>
-                            <p style="margin: 24px 0 8px 0; font-size: 14px; color: #6b7280;">Or copy and paste this link into your browser:</p>
-                            <p style="margin: 0 0 24px 0; font-size: 12px; color: #3b82f6; word-break: break-all;"><a href="${magicLink}" style="color: #3b82f6; text-decoration: none;">${magicLink}</a></p>
-                            <p style="margin: 0; font-size: 13px; color: #9ca3af;">This link expires in 15 minutes.</p>
-                            <p style="margin: 16px 0 0 0; font-size: 12px; color: #d1d5db;">If you didn't request this email, you can safely ignore it.</p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #333; text-align: center;">Sign in to PracticePerfect</h2>
+                    
+                    <p style="text-align: center; font-size: 16px; color: #555;">
+                        Click the button below to sign in instantly, or enter the code if you're on a different device.
+                    </p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${magicLink}" style="background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                            Sign In to PracticePerfect
+                        </a>
+                    </div>
+                    
+                    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                        <p style="margin-top: 0; color: #666; font-size: 14px; margin-bottom: 10px;">Using the app on your phone? Enter this code:</p>
+                        <div style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #10B981; background: white; padding: 10px 20px; border: 2px solid #10B981; border-radius: 8px; display: inline-block;">
+                            ${code}
+                        </div>
+                    </div>
+
+                    <p style="text-align: center; color: #888; font-size: 14px; margin-top: 30px;">
+                        Or copy and paste this link into your browser:<br>
+                        <a href="${magicLink}" style="color: #10B981; word-break: break-all;">${magicLink}</a>
+                    </p>
+                </div>
             `,
         });
 
