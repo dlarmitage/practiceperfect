@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+// import { useAuth } from '../context/AuthContext';
 
 /**
  * Login page component - Magic Link + OTP version
@@ -13,7 +13,7 @@ const Login: React.FC = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
-  const { } = useAuth(); // Assuming this exists or will be added to check auth status
+  // const { refreshUser } = useAuth(); // Commented out as currently unused
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
