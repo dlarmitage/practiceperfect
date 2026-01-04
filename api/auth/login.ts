@@ -38,7 +38,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const db = getDb();
         const resend = new Resend(process.env.RESEND_API_KEY);
         const APP_URL = process.env.APP_URL || 'http://localhost:5173';
-        const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
         // Generate a random token for the magic link (UUID)
         const token = crypto.randomUUID();
