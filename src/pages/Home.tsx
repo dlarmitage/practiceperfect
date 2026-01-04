@@ -724,9 +724,9 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 overflow-hidden flex flex-col">
       <main
-        className="flex-1 px-4 md:px-8 lg:px-12 pb-20"
+        className="flex-1 px-4 md:px-8 lg:px-12 pb-20 overflow-y-auto"
         ref={mainRef}
         onTouchStart={handlePullTouchStart}
         onTouchMove={handlePullTouchMove}
