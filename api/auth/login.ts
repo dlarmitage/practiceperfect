@@ -66,30 +66,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             to: email,
             subject: 'Sign in to PracticePerfect',
             html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #333; text-align: center;">Sign in to PracticePerfect</h2>
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h1 style="color: #10B981; text-align: center; font-size: 32px; font-weight: bold; margin-bottom: 30px; letter-spacing: -1px;">PracticePerfect</h1>
                     
-                    <p style="text-align: center; font-size: 16px; color: #555;">
-                        Click the button below to sign in instantly, or enter the code if you're on a different device.
+                    <p style="font-size: 16px; color: #374151; line-height: 24px; margin-bottom: 24px;">
+                        Hello,
+                    </p>
+
+                    <p style="font-size: 16px; color: #374151; line-height: 24px; margin-bottom: 30px;">
+                        Click the button below to sign in to PracticePerfect. This link will expire in 15 minutes.
                     </p>
                     
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${magicLink}" style="background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <a href="${magicLink}" style="background-color: #10B981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
                             Sign In to PracticePerfect
                         </a>
                     </div>
                     
-                    <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                        <p style="margin-top: 0; color: #666; font-size: 14px; margin-bottom: 10px;">Using the app on your phone? Enter this code:</p>
-                        <div style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #10B981; background: white; padding: 10px 20px; border: 2px solid #10B981; border-radius: 8px; display: inline-block;">
+                    <div style="background-color: #F3F4F6; padding: 32px; border-radius: 12px; text-align: center; margin-bottom: 30px;">
+                        <p style="margin-top: 0; color: #4B5563; font-size: 14px; margin-bottom: 16px;">Using the app on your phone? Enter this code:</p>
+                        <div style="font-family: monospace; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #10B981; background: white; padding: 16px 32px; border: 2px solid #10B981; border-radius: 8px; display: inline-block;">
                             ${code}
                         </div>
                     </div>
 
-                    <p style="text-align: center; color: #888; font-size: 14px; margin-top: 30px;">
-                        Or copy and paste this link into your browser:<br>
-                        <a href="${magicLink}" style="color: #10B981; word-break: break-all;">${magicLink}</a>
-                    </p>
+                    <div style="border-top: 1px solid #E5E7EB; padding-top: 30px; text-align: center;">
+                        <p style="color: #6B7280; font-size: 14px; margin-bottom: 10px;">Or copy and paste this link into your browser:</p>
+                        <a href="${magicLink}" style="color: #10B981; text-decoration: none; font-size: 13px; word-break: break-all; line-height: 1.5;">
+                            ${magicLink}
+                        </a>
+                        <p style="margin-top: 24px; color: #9CA3AF; font-size: 12px;">
+                            If you didn't request this email, you can safely ignore it.
+                        </p>
+                    </div>
                 </div>
             `,
         });
