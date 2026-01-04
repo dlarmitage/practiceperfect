@@ -70,7 +70,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (req.method === 'POST') {
             const data = req.body;
-            const [newGoal] = await db.insert(goals).values({ ...data, userId: payload.userId }).returning();
+            console.log('Creating goal with data:', JSON.stringify(data));
+
+            // Map frontend fields to database fields
+            const goalData = {
+                userId: payload.userId,
+                name: data.name,
+                description: data.description || '',
+                count: data.count || 0,
+                targetCount: data.targetCount,
+                cadence: data.cadence,
+                isActive: data.isActive ?? true,
+                completed: data.completed ?? false,
+                startDate: data.startDate ? new Date(data.startDate) : new Date(),
+                dueDate: data.dueDate ? new Date(data.dueDate) : null,
+                link: data.link || null,
+                sortOrder: data.sortOrder || 0,
+            };
+
+            console.log('Mapped goal data:', JSON.stringify(goalData));
+            const [newGoal] = await db.insert(goals).values(goalData).returning();
+            console.log('Created goal:', JSON.stringify(newGoal));
             return res.status(201).json(newGoal);
         }
 
