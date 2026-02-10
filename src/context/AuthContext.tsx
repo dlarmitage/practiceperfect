@@ -67,6 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const handleSignOut = async () => {
     try {
       await apiSignOut();
+      localStorage.removeItem('auth_token');
       setUser(null);
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to sign out');

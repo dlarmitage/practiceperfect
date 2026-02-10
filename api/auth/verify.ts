@@ -92,7 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({
             success: true,
-            user: { id: user.id, email: user.email, displayName: user.displayName }
+            user: { id: user.id, email: user.email, displayName: user.displayName },
+            token: jwtToken
         });
     } catch (error) {
         console.error('Verify error:', error);

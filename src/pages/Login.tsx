@@ -102,6 +102,11 @@ const Login: React.FC = () => {
         throw new Error(data.error || 'Invalid verification code');
       }
 
+      // Successful login - store token for persistence on iOS
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+      }
+
       // Successful login
       navigate('/home');
       // Force a refresh of the auth state if needed, though navigation usually triggers re-check

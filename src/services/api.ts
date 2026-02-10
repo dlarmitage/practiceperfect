@@ -3,10 +3,14 @@ import type { SortMethod } from '../context/GoalContext';
 
 // Helper to handle API responses
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = localStorage.getItem('auth_token');
+
     const res = await fetch(`/api${endpoint}`, {
         ...options,
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             ...options.headers,
         },
     });

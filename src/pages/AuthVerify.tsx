@@ -30,6 +30,11 @@ const AuthVerify: React.FC = () => {
                     throw new Error(data.error || 'Verification failed');
                 }
 
+                // Store token for persistence on iOS
+                if (data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                }
+
                 // Refresh the auth context
                 if (refreshUser) {
                     await refreshUser();

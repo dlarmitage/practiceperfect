@@ -38,7 +38,17 @@ function verifyToken(token: string): JWTPayload | null {
 }
 
 function getAuthTokenFromRequest(req: VercelRequest): string | null {
-    return req.cookies?.[COOKIE_NAME] || null;
+    // Check cookie first
+    const cookieToken = req.cookies?.[COOKIE_NAME];
+    if (cookieToken) return cookieToken;
+
+    // Then check Authorization header
+    const authHeader = req.headers['authorization'];
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+
+    return null;
 }
 
 // ============ HANDLER ============

@@ -117,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             path: '/',
         }));
 
-        return res.status(200).json({ user });
+        return res.status(200).json({ user, token });
     } catch (error) {
         console.error('Verify Code error:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
