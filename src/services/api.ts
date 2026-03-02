@@ -7,7 +7,6 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
     const res = await fetch(`/api${endpoint}`, {
         ...options,
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -92,7 +91,7 @@ export const createGoal = async (goal: Omit<Goal, 'id' | 'createdAt' | 'updatedA
 };
 
 export const updateGoal = async (id: string, updates: Partial<Goal>): Promise<Goal> => {
-    const apiGoal = await fetchApi<any>(`/goals/${id}`, {
+    const apiGoal = await fetchApi<any>(`/goals?id=${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
     });
@@ -100,7 +99,7 @@ export const updateGoal = async (id: string, updates: Partial<Goal>): Promise<Go
 };
 
 export const deleteGoal = async (id: string): Promise<boolean> => {
-    await fetchApi(`/goals/${id}`, { method: 'DELETE' });
+    await fetchApi(`/goals?id=${id}`, { method: 'DELETE' });
     return true;
 };
 
@@ -140,7 +139,7 @@ export const createSession = async (session: Omit<Session, 'id' | 'created_at' |
 };
 
 export const updateSession = async (id: string, updates: Partial<Session>): Promise<Session> => {
-    const apiSession = await fetchApi<any>(`/sessions/${id}`, {
+    const apiSession = await fetchApi<any>(`/sessions?id=${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
     });
@@ -148,7 +147,7 @@ export const updateSession = async (id: string, updates: Partial<Session>): Prom
 };
 
 export const deleteSession = async (id: string) => {
-    await fetchApi(`/sessions/${id}`, { method: 'DELETE' });
+    await fetchApi(`/sessions?id=${id}`, { method: 'DELETE' });
     return true;
 };
 

@@ -41,7 +41,13 @@ function verifyToken(token: string): JWTPayload | null {
 }
 
 function getAuthTokenFromRequest(req: VercelRequest): string | null {
-    return req.cookies?.[COOKIE_NAME] || null;
+    const cookieToken = req.cookies?.[COOKIE_NAME];
+    if (cookieToken) return cookieToken;
+    const authHeader = req.headers['authorization'];
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+    return null;
 }
 
 // ============ HANDLER ============
@@ -54,7 +60,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
         const db = getDb();
+        const id = req.query.id as string | undefined;
 
+        // Single session operations (PUT/DELETE with ?id=...)
+        if (id) {
+            if (req.method === 'PUT') {
+                const data = req.body;
+                const updateData: Record<string, any> = { updatedAt: new Date() };
+                if (data.goalId !== undefined) updateData.goalId = data.goalId;
+                if (data.sessionDate !== undefined) updateData.sessionDate = data.sessionDate ? new Date(data.sessionDate) : new Date();
+                if (data.duration !== undefined) updateData.duration = data.duration;
+                if (data.mood !== undefined) updateData.mood = data.mood;
+                if (data.notes !== undefined) updateData.notes = data.notes;
+                if (data.location !== undefined) updateData.location = data.location;
+
+                const [updated] = await db.update(sessions)
+                    .set(updateData)
+                    .where(and(eq(sessions.id, id), eq(sessions.userId, payload.userId)))
+                    .returning();
+                if (!updated) return res.status(404).json({ error: 'Session not found' });
+                return res.status(200).json(updated);
+            }
+
+            if (req.method === 'DELETE') {
+                const [deleted] = await db.delete(sessions)
+                    .where(and(eq(sessions.id, id), eq(sessions.userId, payload.userId)))
+                    .returning();
+                if (!deleted) return res.status(404).json({ error: 'Session not found' });
+                return res.status(200).json({ success: true });
+            }
+
+            return res.status(405).json({ error: 'Method Not Allowed' });
+        }
+
+        // Collection operations (GET/POST)
         if (req.method === 'GET') {
             const goalId = req.query.goalId as string | undefined;
             const conditions = [eq(sessions.userId, payload.userId)];
@@ -71,7 +110,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (req.method === 'POST') {
             const data = req.body;
 
-            // Map frontend fields to database fields
             const sessionData = {
                 userId: payload.userId,
                 goalId: data.goalId || data.goal_id,

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { pgTable, text, timestamp, uuid, integer, boolean } from 'drizzle-orm/pg-core';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 // ============ SCHEMA ============
 const goals = pgTable('goals', {
@@ -47,7 +47,13 @@ function verifyToken(token: string): JWTPayload | null {
 }
 
 function getAuthTokenFromRequest(req: VercelRequest): string | null {
-    return req.cookies?.[COOKIE_NAME] || null;
+    const cookieToken = req.cookies?.[COOKIE_NAME];
+    if (cookieToken) return cookieToken;
+    const authHeader = req.headers['authorization'];
+    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        return authHeader.substring(7);
+    }
+    return null;
 }
 
 // ============ HANDLER ============
@@ -60,7 +66,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!payload) return res.status(401).json({ error: 'Unauthorized' });
 
         const db = getDb();
+        const id = req.query.id as string | undefined;
 
+        // Single goal operations (PUT/DELETE with ?id=...)
+        if (id) {
+            if (req.method === 'PUT') {
+                const data = req.body;
+                const updateData: Record<string, any> = { updatedAt: new Date() };
+                if (data.name !== undefined) updateData.name = data.name;
+                if (data.description !== undefined) updateData.description = data.description || '';
+                if (data.count !== undefined) updateData.count = data.count;
+                if (data.targetCount !== undefined) updateData.targetCount = data.targetCount;
+                if (data.cadence !== undefined) updateData.cadence = data.cadence;
+                if (data.isActive !== undefined) updateData.isActive = data.isActive;
+                if (data.completed !== undefined) updateData.completed = data.completed;
+                if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : new Date();
+                if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+                if (data.link !== undefined) updateData.link = data.link || null;
+                if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
+                if (data.lastClicked !== undefined) updateData.lastClicked = data.lastClicked ? new Date(data.lastClicked) : null;
+
+                const [updated] = await db.update(goals)
+                    .set(updateData)
+                    .where(and(eq(goals.id, id), eq(goals.userId, payload.userId)))
+                    .returning();
+                if (!updated) return res.status(404).json({ error: 'Goal not found' });
+                return res.status(200).json(updated);
+            }
+
+            if (req.method === 'DELETE') {
+                const [deleted] = await db.delete(goals)
+                    .where(and(eq(goals.id, id), eq(goals.userId, payload.userId)))
+                    .returning();
+                if (!deleted) return res.status(404).json({ error: 'Goal not found' });
+                return res.status(200).json({ success: true });
+            }
+
+            return res.status(405).json({ error: 'Method Not Allowed' });
+        }
+
+        // Collection operations (GET/POST)
         if (req.method === 'GET') {
             const userGoals = await db.select().from(goals)
                 .where(eq(goals.userId, payload.userId))
@@ -71,7 +116,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (req.method === 'POST') {
             const data = req.body;
 
-            // Map frontend fields to database fields
             const goalData = {
                 userId: payload.userId,
                 name: data.name,

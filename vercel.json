@@ -1,18 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/goals/:id",
-      "destination": "/api/goals/[id]"
-    },
-    {
-      "source": "/api/sessions/:id",
-      "destination": "/api/sessions/[id]"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
